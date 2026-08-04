@@ -1,0 +1,40 @@
+# --- Secretos: NUNCA deben salir del servidor -------------------------------
+# .env contiene contraseñas de SQL Server, la llave AES y el secreto de sesión.
+# Solo se versiona .env.example, con los valores en blanco.
+.env
+.env.*
+!.env.example
+*.pfx
+*.pem
+*.key
+*.p12
+
+# --- Dependencias y compilados ----------------------------------------------
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# --- Registros y temporales --------------------------------------------------
+logs/
+*.log
+npm-debug.log*
+.tmp/
+temp/
+
+# --- Copias de seguridad de SQL ---------------------------------------------
+*.bak
+*.trn
+*.mdf
+*.ldf
+
+# --- Sistema operativo y editores -------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+# --- Exportaciones generadas en tiempo de ejecución --------------------------
+backend/exports/
+backend/tmp/

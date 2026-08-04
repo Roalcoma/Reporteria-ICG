@@ -1,0 +1,148 @@
+/* ============================================================================
+   Sistema de diseño — ICG Reportería
+   Estilo: «Data-Dense Dashboard» · densidad 8/10 · movimiento sutil
+
+   Paleta base recomendada para herramientas de inteligencia de negocio:
+   azul de datos con acentos ámbar. Se respetan los valores del sistema, con
+   dos ajustes justificados:
+
+   1. El texto principal usa un gris azulado neutro (#0F172A) en vez del azul
+      #1E3A8A. Sobre el fondo claro da 15.9:1 en lugar de 8.6:1, y en tablas
+      densas leídas durante horas el texto neutro cansa menos. El azul se
+      reserva para títulos y elementos de marca.
+   2. Los separadores de tabla usan un borde más marcado que el general: con
+      filas de 30 px un borde casi blanco desaparece y se pierde la rejilla.
+
+   TIPOGRAFÍA: el sistema sugiere Fira Sans/Fira Code desde Google Fonts, pero
+   esta aplicación debe funcionar en servidores sin salida a internet (igual que
+   Monaco, que ya se sirve local). Se usa la pila del sistema, que no requiere
+   descarga y respeta la apariencia nativa de Windows.
+   ============================================================================ */
+
+:root {
+  /* --- Color: marca --- */
+  --primary:        #1E40AF;
+  --primary-hover:  #1D4ED8;
+  --on-primary:     #FFFFFF;
+  --secondary:      #3B82F6;
+  --accent:         #D97706;   /* ámbar accesible (3:1 sobre claro) */
+  --accent-suave:   #FEF3C7;
+
+  /* --- Color: superficie --- */
+  --fondo:          #F1F5F9;   /* lienzo de la aplicación */
+  --panel:          #FFFFFF;   /* tarjetas y paneles */
+  --panel-alt:      #F8FAFC;   /* filas alternas, cabeceras */
+  --muted:          #E9EEF6;
+  --borde:          #DBEAFE;   /* bordes suaves de marca */
+  --borde-fuerte:   #CBD5E1;   /* rejilla de tablas: debe verse */
+
+  /* --- Color: texto --- */
+  --texto:          #0F172A;
+  --texto-suave:    #475569;
+  --texto-tenue:    #64748B;
+  --titulo:         #1E3A8A;
+
+  /* --- Color: estado --- */
+  --ok:             #15803D;
+  --ok-suave:       #DCFCE7;
+  /* El rojo del sistema (#DC2626) queda en 4.41:1 sobre su propio fondo suave,
+     justo por debajo del mínimo legible. Se oscurece un paso para cumplir. */
+  --error:          #B91C1C;
+  --error-suave:    #FEF2F2;
+  --aviso:          #B45309;
+  --aviso-suave:    #FFFBEB;
+  --foco:           #1E40AF;
+
+  /* --- Distintivos por tipo de reporte --- */
+  --simple:         #1E40AF;
+  --simple-suave:   #E0E7FF;
+  --multinivel:     #7C3AED;
+  --multinivel-suave:#EDE9FE;
+  --dashboard:      #0F766E;
+  --dashboard-suave:#CCFBF1;
+
+  /* --- Espaciado (densidad alta: 4→32) --- */
+  --e1: 4px;  --e2: 8px;  --e3: 12px; --e4: 16px; --e5: 24px; --e6: 32px;
+
+  /* --- Radios --- */
+  --r1: 4px;  --r2: 6px;  --r3: 8px;  --r4: 12px;
+
+  /* --- Elevación: sutil, sin sombras dramáticas --- */
+  --sombra1: 0 1px 2px rgba(15, 23, 42, .06);
+  --sombra2: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04);
+  --sombra3: 0 4px 12px rgba(15, 23, 42, .10);
+
+  /* --- Tipografía --- */
+  --fuente: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+            'Helvetica Neue', Arial, sans-serif;
+  /* Monoespaciada tabular para cifras: las columnas quedan alineadas */
+  --fuente-mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas,
+                 'Liberation Mono', monospace;
+  --t-xs: 11px; --t-sm: 12px; --t-base: 13px; --t-md: 14px;
+  --t-lg: 16px; --t-xl: 19px; --t-2xl: 23px;
+
+  /* --- Movimiento: 150-300 ms, perceptible pero no lento --- */
+  --transicion: 160ms cubic-bezier(.4, 0, .2, 1);
+  --transicion-lenta: 240ms cubic-bezier(.4, 0, .2, 1);
+
+  color-scheme: light;
+}
+
+/* ============================================================================
+   Modo oscuro
+   Superficies elevadas por luminosidad (no por sombra) y azul aclarado para
+   mantener el contraste sobre fondo oscuro.
+   ============================================================================ */
+:root[data-tema="oscuro"] {
+  --primary:        #60A5FA;
+  --primary-hover:  #93C5FD;
+  --on-primary:     #0B1220;
+  --secondary:      #3B82F6;
+  --accent:         #FBBF24;
+  --accent-suave:   #422006;
+
+  --fondo:          #0B1220;
+  --panel:          #131C2E;
+  --panel-alt:      #1A2436;
+  --muted:          #1E293B;
+  --borde:          #24314A;
+  --borde-fuerte:   #334155;
+
+  --texto:          #E8EEF7;
+  --texto-suave:    #A9B6CA;
+  --texto-tenue:    #8494AB;
+  --titulo:         #BFD4FF;
+
+  --ok:             #4ADE80;
+  --ok-suave:       #052E16;
+  --error:          #F87171;
+  --error-suave:    #2A1113;
+  --aviso:          #FBBF24;
+  --aviso-suave:    #2C1D05;
+  --foco:           #60A5FA;
+
+  --simple:         #93B4FF;
+  --simple-suave:   #1B2A4E;
+  --multinivel:     #C4B5FD;
+  --multinivel-suave:#2A1F4D;
+  --dashboard:      #5EEAD4;
+  --dashboard-suave:#0B3B37;
+
+  --sombra1: 0 1px 2px rgba(0, 0, 0, .35);
+  --sombra2: 0 1px 3px rgba(0, 0, 0, .45);
+  --sombra3: 0 6px 18px rgba(0, 0, 0, .55);
+
+  color-scheme: dark;
+}
+
+/* Quien pide menos movimiento recibe cambios instantáneos, no animaciones
+   aceleradas: la preferencia es del sistema operativo y hay que respetarla. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --transicion: 1ms; --transicion-lenta: 1ms; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
