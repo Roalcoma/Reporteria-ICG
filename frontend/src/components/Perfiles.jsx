@@ -7,6 +7,22 @@ const info = (t) => TIPO_INFO[t] || TIPO_INFO.SIMPLE;
 /**
  * Perfiles de reporte: agrupan reportes y se asignan a usuarios.
  * Modificar el perfil alcanza a todos sus usuarios de una vez.
+ *
+ * PERFIL Y ROL SON DIMENSIONES DISTINTAS, y confundirlas es el error habitual:
+ *   · el ROL (pantalla Usuarios) define QUÉ PUEDE HACER — crear, editar, administrar;
+ *   · el PERFIL define QUÉ REPORTES VE.
+ * Un administrador con perfiles sigue viendo todo; un creador sin perfiles
+ * también. No se solapan.
+ *
+ * REGLA DE VISIBILIDAD, en este orden:
+ *   administrador          → ve todos los reportes, siempre;
+ *   usuario SIN perfiles   → ve todos los reportes;
+ *   usuario CON perfiles   → solo los de sus perfiles.
+ *
+ * Que «sin perfiles» signifique «ve todo» y no «no ve nada» es deliberado: al
+ * introducir esta función en una instalación en marcha, nadie perdió acceso de
+ * un día para otro. La contrapartida es que asignar el primer perfil a alguien
+ * le RESTRINGE lo que antes veía completo; conviene avisarlo.
  */
 export default function Perfiles() {
   const [lista, setLista] = useState([]);

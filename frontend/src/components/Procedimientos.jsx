@@ -6,6 +6,21 @@ const fecha = (v) => (v ? new Date(v).toLocaleString('es-VE') : '—');
 /**
  * Administración de la lista blanca de procedimientos almacenados.
  * Un reporte solo puede ejecutar un SP si está registrado y activo aquí.
+ *
+ * «Descubrir» solo LEE el catálogo del sistema (sys.objects) de la base de la
+ * empresa activa: enumera procedimientos, no los ejecuta.
+ *
+ * LÍMITE REAL DE ESTA LISTA, que conviene tener claro antes de autorizar nada:
+ * un procedimiento hace internamente lo que quiera. La lista blanca impide que
+ * se llame CUALQUIER cosa, pero la garantía de que no escriba proviene del login
+ * SQL de solo lectura, no de esta pantalla.
+ *
+ * Autorice únicamente procedimientos de LECTURA revisados por un DBA, y preste
+ * atención especial a los que usen EXECUTE AS: cambian la identidad efectiva
+ * dentro del motor y podrían eludir precisamente ese login de solo lectura.
+ *
+ * Los del sistema (sp_, xp_) se rechazan siempre, aunque alguien consiga
+ * registrarlos. Cada alta y cada baja quedan auditadas.
  */
 export default function Procedimientos({ permisos }) {
   const [lista, setLista] = useState([]);

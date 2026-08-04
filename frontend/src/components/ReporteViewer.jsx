@@ -19,6 +19,23 @@ const HOJAS = [
  * Visor de un reporte: selector de empresa (y ejercicio si es CONTABLE),
  * parametros dinamicos, ejecucion, grid de resultados, exportacion y
  * envio por correo ad-hoc sin salir de la pantalla.
+ *
+ * GESTIÓN Y CONTABLE SE COMPORTAN DISTINTO, y es la fuente de confusión más
+ * común de esta pantalla:
+ *   GESTION  → usa la empresa activa de la sesión, la que se eligió al entrar.
+ *              El campo aparece deshabilitado: para cambiarla se cambia de
+ *              empresa en la barra superior.
+ *   CONTABLE → pide elegir empresa contable Y ejercicio, porque un mismo plan
+ *              contable existe por ejercicio y el reporte no tiene sentido sin
+ *              esa pareja. Solo se ofrecen las contables asociadas a la empresa
+ *              de gestión activa.
+ *
+ * La empresa elegida se revalida en el servidor al ejecutar: lo que se manda
+ * desde aquí es una propuesta, no una autorización.
+ *
+ * La orientación y el tamaño de hoja parten de los valores por defecto del
+ * reporte y solo afectan al PDF; los demás formatos los ignoran. Se pueden
+ * ajustar para una exportación concreta sin modificar la definición.
  */
 export default function ReporteViewer({ reporteId, empresaGestion }) {
   const [def, setDef] = useState(null);

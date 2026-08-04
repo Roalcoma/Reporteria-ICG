@@ -23,7 +23,37 @@ import HistorialReporte from './components/HistorialReporte';
 // El editor arrastra Monaco (~MBs): se carga solo cuando un creador lo abre.
 const ReporteEditor = lazy(() => import('./components/ReporteEditor'));
 
-/** Flujo: contraseña -> elegir empresa de gestión -> trabajar con reportes. */
+/**
+ * Raíz de la aplicación: sesión, navegación y permisos de la barra superior.
+ *
+ * FLUJO DE ENTRADA (tres estados excluyentes, resueltos antes de pintar nada):
+ *   sin sesión           -> <Login>            (solo contraseña, como en ICG)
+ *   sesión sin empresa   -> <SelectorEmpresa>  (empresas de gestión permitidas)
+ *   sesión con empresa   -> aplicación completa
+ *
+ * `listo` evita el parpadeo inicial: mientras se comprueba si la cookie sigue
+ * viva no se decide nada, porque pintar el login y sustituirlo medio segundo
+ * después se ve como un fallo.
+ *
+ * NAVEGACIÓN. No se usa enrutador. La pantalla activa es el estado `vista`, y
+ * los botones alternan: al pulsar la sección ya abierta se vuelve a 'VISOR'. Es
+ * deliberado —la herramienta se usa como una aplicación de escritorio, no se
+ * comparten enlaces a pantallas— y ahorra una dependencia. Si algún día se
+ * necesitan URLs por sección, este es el punto donde entra el enrutador.
+ *
+ * PERMISOS. La barra superior solo MUESTRA lo que corresponde al rol, pero eso
+ * es comodidad, nunca seguridad: cada endpoint revalida el permiso en el
+ * servidor. Ocultar un botón no protege nada por sí solo.
+ *
+ *   PuedeCrear/PuedeEditar -> Portabilidad, Branding, SPs, Auditoría
+ *   PuedeAdministrar       -> Perfiles, Usuarios
+ *   CODUSUARIO === 0       -> Orígenes (catálogo semántico, solo SUPERVISOR)
+ *
+ * `ErrorBoundary` lleva `key={vista}`: se reinicia al cambiar de sección, de
+ * modo que un fallo en una pantalla no deja la aplicación bloqueada.
+ * `refrescarArbol` es un contador que se incrementa para forzar el remontaje
+ * del árbol lateral cuando algo externo cambia la lista de reportes.
+ */
 export default function App() {
   const [user, setUser] = useState(null);
   const [empresas, setEmpresas] = useState([]);

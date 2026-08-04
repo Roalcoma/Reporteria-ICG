@@ -1,4 +1,25 @@
 'use strict';
+/**
+ * API HTTP de la reportería. Punto de entrada del proceso web (`npm start`).
+ *
+ * Aquí viven solo las rutas de SESIÓN y CONTEXTO —entrar, salir, elegir empresa—
+ * porque son las que no pertenecen a ningún módulo concreto. Todo lo demás se
+ * delega a `routes/`, un módulo por área funcional.
+ *
+ * Dos decisiones que conviene no revertir:
+ *
+ * 1. La empresa activa se guarda EN LA SESIÓN DEL SERVIDOR, no en el cliente, y
+ *    se revalida contra ICG en cada cambio. Si el navegador pudiera dictar la
+ *    empresa, manipular una petición daría acceso a datos de otra compañía.
+ *
+ * 2. Al responder nunca se envían `servidor` ni `baseDatos` de una empresa. El
+ *    cliente trabaja con códigos; a qué servidor corresponden es información de
+ *    infraestructura que no tiene por qué salir del backend (ver el `map` que
+ *    descarta esos campos en /api/login y /api/empresas).
+ *
+ * El manejador de errores del final traduce AuthError a 403 y evita filtrar
+ * trazas al cliente: los errores 500 se registran en consola, no en la respuesta.
+ */
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');

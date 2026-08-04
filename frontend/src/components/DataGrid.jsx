@@ -11,6 +11,19 @@ import { formatValue, esNumerico, calcularAgregacion } from '../format';
  *  - alias de presentacion y formatos (moneda/fecha/porcentaje)
  *  - agrupacion por un campo de nivel con subtotales
  *  - metricas de pie (suma/promedio/conteo/min/max)
+ *
+ * COLUMNAS INFERIDAS. Si el reporte no trae definición de columnas —recién
+ * creado, o importado sin configurarlas— se deducen de la primera fila del
+ * resultado. Así una consulta nueva se ve de inmediato en lugar de mostrar una
+ * rejilla vacía, aunque sin alias ni formatos hasta que se configuren.
+ *
+ * `consultaRol` selecciona a qué consulta pertenecen las columnas. En un reporte
+ * multinivel el mismo componente pinta la cabecera y el detalle, cada uno con su
+ * propio juego de columnas: sin este filtro, ambas rejillas mostrarían todas.
+ *
+ * Los subtotales de pie se calculan sobre las filas RECIBIDAS, que son las que
+ * devolvió la consulta. Si el reporte lleva TOP o el motor recortó el resultado,
+ * el total corresponde a lo mostrado, no al universo completo.
  */
 export default function DataGrid({ rows, columnas, consultaRol = 'FLAT' }) {
   const defs = useMemo(

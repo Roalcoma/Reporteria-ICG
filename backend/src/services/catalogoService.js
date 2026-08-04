@@ -9,6 +9,16 @@ const CACHE_MS = 5 * 60 * 1000;
 /**
  * Catálogo semántico: orígenes de datos que publicamos para que los usuarios
  * armen dashboards sin escribir SQL.
+ *
+ * CACHÉ EN MEMORIA (5 min). El catálogo cambia poco y se consulta en cada
+ * apertura de panel, así que releerlo entero de la base en cada petición sería
+ * gasto puro. La contrapartida: tras editar un origen, el cambio puede tardar
+ * hasta cinco minutos en verse si no se invalida la caché explícitamente
+ * —catalogoAdminService lo hace al guardar—.
+ *
+ * Es caché POR PROCESO: con varios workers o varias instancias del API, cada uno
+ * tiene la suya. Para el catálogo es aceptable; no lo sería para datos que deban
+ * ser coherentes al instante entre procesos.
  */
 class CatalogoService {
   constructor() { this._cache = null; this._cacheAt = 0; }

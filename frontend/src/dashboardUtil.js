@@ -1,4 +1,25 @@
-// Estructura y normalización de la configuración de un panel.
+/**
+ * Estructura y normalización de la configuración de un panel.
+ *
+ * Aquí vive el «contrato» del JSON que guarda un dashboard, separado de los
+ * componentes para que el editor, la vista y las pruebas compartan una única
+ * definición de qué es un panel válido.
+ *
+ * TAMAÑOS POR TRAMOS, NO EN PÍXELES. Un objeto ocupa «un tercio», «la mitad»,
+ * «dos tercios» o «el ancho completo» sobre una rejilla de seis columnas. Con
+ * medidas libres, un panel diseñado en una pantalla ancha se descuadra en otra
+ * más estrecha; por tramos siempre encaja. El precio es no poder afinar al
+ * píxel, que es justo lo que falta para el arrastre de bordes pendiente.
+ *
+ * COMPATIBILIDAD HACIA ATRÁS. `normalizar()` es lo que permite añadir campos a
+ * la configuración sin migrar los paneles ya guardados en cada cliente: rellena
+ * lo que falte al abrir. Al introducir una propiedad nueva, dele aquí un valor
+ * por defecto en vez de asumir que existe.
+ *
+ * PERIODOS relativos ("este mes", "últimos 30 días") se guardan por CLAVE, no
+ * como fechas. El servidor los resuelve al ejecutar, de modo que el panel sigue
+ * mostrando el período en curso cada vez que se abre, sin reescribir nada.
+ */
 
 export const ANCHOS = [
   { id: 'tercio', nombre: 'Un tercio', columnas: 2 },

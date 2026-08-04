@@ -8,6 +8,27 @@ const { revisarSql } = require('../engine/sqlGuard');
 /**
  * Portabilidad de reportes entre instalaciones/clientes: serializa la definición
  * completa a un objeto JSON limpio (sin IDs internos) e importa desde ese JSON.
+ *
+ * QUÉ NO VIAJA, y es lo importante: ni datos, ni credenciales, ni identificadores
+ * internos. Un archivo exportado describe CÓMO se construye el reporte, no lo que
+ * devuelve. Puede enviarse a otro cliente sin filtrar información de negocio.
+ *
+ * ANALIZAR ANTES DE IMPORTAR. `analizar()` revisa el archivo sin guardar nada y
+ * separa dos niveles:
+ *   ERROR  (bloquea)    formato desconocido, sin consultas, SQL que no pasa la
+ *                       guarda, o —el caso típico al migrar— un procedimiento
+ *                       almacenado que el cliente de origen tenía autorizado y
+ *                       este no. Se resuelve autorizándolo en la lista blanca,
+ *                       NUNCA relajando la validación.
+ *   AVISO  (no bloquea) ya existe un reporte activo con ese nombre.
+ *
+ * El SQL importado pasa por la MISMA guarda que el escrito a mano, de modo que
+ * un archivo manipulado no puede introducir sentencias destructivas. Importar no
+ * es una vía de confianza.
+ *
+ * El marcador de versión permite que una instalación futura reconozca formatos
+ * antiguos: al cambiar la estructura, suba la versión y acepte también la previa
+ * en lugar de romper los archivos ya distribuidos.
  */
 const FORMATO = 'icg-reporteria/v1';
 

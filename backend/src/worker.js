@@ -1,4 +1,26 @@
 'use strict';
+/**
+ * Worker del planificador: proceso SEPARADO del API (`npm run worker`).
+ *
+ * Por qué vive aparte: un reporte programado sobre un año de ventas puede tardar
+ * minutos. Dentro del API ocuparía el mismo proceso que atiende a los usuarios
+ * interactivos y la aplicación se sentiría lenta. Separarlos permite además
+ * reiniciar el API sin perder los trabajos que ya están en cola.
+ *
+ * No depende de SQL Server Agent (no existe en la edición Express, habitual en
+ * clientes pequeños) ni de Redis (sería un servicio más que instalar y vigilar
+ * en el servidor del cliente). La cola es una tabla del propio SQL Server.
+ *
+ * Tres relojes independientes:
+ *   · cada minuto  → encola las programaciones vencidas y recalcula su próxima corrida;
+ *   · cada 5 s     → drena la cola reclamando trabajos;
+ *   · cada 10 min  → recupera trabajos que quedaron colgados por un worker caído.
+ *
+ * PUEDEN CORRER VARIOS WORKERS A LA VEZ, incluso en distintos servidores: el
+ * reclamo de cada trabajo es atómico (UPDLOCK + READPAST en schedulerService),
+ * así que dos workers nunca procesan el mismo. Cada uno necesita su propio
+ * WORKER_ID en el .env para que la bitácora distinga quién hizo qué.
+ */
 require('dotenv').config();
 const cron = require('node-cron');
 const cm = require('./db/connectionManager');

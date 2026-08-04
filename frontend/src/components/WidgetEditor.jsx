@@ -1,3 +1,24 @@
+/**
+ * Configurador de un objeto del panel: qué mide, cómo se agrupa, qué filtra y
+ * cuánto ocupa. Es el equivalente al panel lateral de Power BI.
+ *
+ * IDEA CENTRAL — el usuario nunca escribe SQL. Elige DIMENSIONES (por qué
+ * agrupar: almacén, mes, familia) y MÉTRICAS (qué medir: importe, unidades), y
+ * el servidor arma la consulta a partir del catálogo.
+ *
+ * CAMPOS ALCANZABLES. Las listas no muestran el catálogo entero: solo lo que se
+ * puede combinar con lo ya elegido, siguiendo las relaciones declaradas
+ * (`camposAlcanzables` en catalogoUtil). Así no se ofrece una combinación que
+ * el motor rechazaría después por no existir un camino entre los orígenes.
+ *
+ * SELECCIÓN EN DOS PASOS. Origen primero, atributo después. Con el catálogo
+ * completo en un solo desplegable la búsqueda se hacía interminable —fue una
+ * corrección pedida tras probar la interfaz—, y por eso `FilaFiltro` obliga a
+ * acotar el origen antes de ofrecer atributos, con buscador cuando pasan de ocho.
+ *
+ * La vista previa se pinta con el MISMO componente que el panel real
+ * (`WidgetView`), de modo que lo que se configura es exactamente lo que se verá.
+ */
 import { useMemo, useState } from 'react';
 import WidgetView, { TIPOS_WIDGET } from './WidgetView';
 import { camposAlcanzables, origenesDeConsulta } from '../catalogoUtil';

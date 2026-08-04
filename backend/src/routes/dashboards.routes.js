@@ -1,4 +1,25 @@
 'use strict';
+/**
+ * API de tableros: catálogo disponible, consulta semántica y CRUD de paneles.
+ *
+ * DIFERENCIA CLAVE CON /api/reportes: aquí NUNCA llega SQL desde el cliente. El
+ * navegador envía una consulta declarativa —qué dimensiones, qué métricas, qué
+ * filtros, todo por clave lógica— y `semanticQuery` la traduce a T-SQL contra el
+ * catálogo. Todo lo que acaba ejecutándose proviene de una lista blanca definida
+ * por un administrador, así que estas rutas no necesitan pasar por sqlGuard: no
+ * hay texto libre que validar.
+ *
+ * Si alguna vez se plantea aceptar una expresión escrita por el usuario en un
+ * tablero, esa garantía desaparece y habría que reintroducir la guarda.
+ *
+ * PERMISO PROPIO. Crear tableros se controla con `PuedeCrearDashboards`,
+ * independiente de `PuedeCrear` (que habilita el editor de T-SQL). Un analista
+ * puede armar sus paneles sobre el catálogo sin quedar autorizado a escribir
+ * consultas contra la base.
+ *
+ * /consultar y /valores ejecutan sin guardar nada: alimentan la vista previa
+ * del editor y las listas de los filtros.
+ */
 const express = require('express');
 const catalogo = require('../services/catalogoService');
 const dashboards = require('../services/dashboardService');

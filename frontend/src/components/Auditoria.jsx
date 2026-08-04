@@ -5,7 +5,21 @@ import { formatValue } from '../format';
 const fecha = (v) => (v ? new Date(v).toLocaleString('es-VE') : '—');
 const ms = (v) => (v == null ? '—' : `${Math.round(v)} ms`);
 
-/** Panel de auditoría: estadísticas de uso + bitácora de eventos. */
+/**
+ * Panel de auditoría: estadísticas de uso + bitácora de eventos.
+ *
+ * Las estadísticas salen de vistas de SQL Server (vw_EstadisticasReporte,
+ * vw_EstadisticasUsuario, vw_ActividadDiaria), no de cálculos en el navegador:
+ * agregar miles de ejecuciones aquí sería lento y además el servidor ya tiene
+ * los índices adecuados.
+ *
+ * Lo más útil de esta pantalla no son los reportes más usados sino los que NADIE
+ * usa: es lo que permite depurar un catálogo que ha ido creciendo sin control.
+ *
+ * La bitácora incluye los intentos RECHAZADOS —accesos fallidos y SQL bloqueado
+ * por sqlGuard—, que es donde se ve si alguien está tanteando los límites. Nunca
+ * registra la contraseña probada.
+ */
 export default function Auditoria() {
   const [tab, setTab] = useState('ESTADISTICAS');
   return (

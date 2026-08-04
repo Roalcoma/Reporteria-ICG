@@ -1,4 +1,19 @@
 'use strict';
+/**
+ * API del árbol de carpetas que organiza los reportes.
+ *
+ * Las carpetas anidan por `CarpetaPadreId`, sin límite de profundidad. El árbol
+ * se arma en el servicio, no en el cliente, para que el orden y la jerarquía
+ * sean los mismos en cualquier pantalla que los muestre.
+ *
+ * BORRADO. Una carpeta con contenido activo NO se elimina: responde 409
+ * indicando cuántos reportes y subcarpetas contiene, en lugar de arrastrarlos.
+ * En cambio los reportes ya eliminados —cuyo borrado es lógico, para conservar
+ * la auditoría— sí se desvinculan dentro de la misma transacción. Esa
+ * desvinculación no es un detalle menor: sin ella el borrado fallaba con un
+ * error 500 por violación de clave foránea, porque las filas seguían
+ * apuntando a la carpeta aunque el usuario ya no las viera.
+ */
 const express = require('express');
 const sql = require('mssql');
 const cm = require('../db/connectionManager');

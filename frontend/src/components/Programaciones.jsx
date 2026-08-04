@@ -4,7 +4,26 @@ import { api } from '../api';
 const FORMATOS = ['PDF', 'EXCEL', 'CSV', 'HTML', 'JSON', 'XML'];
 const fecha = (v) => (v ? new Date(v).toLocaleString('es-VE') : '—');
 
-/** Módulo Scheduler: programaciones de envío automático + historial de envíos. */
+/**
+ * Módulo Scheduler: programaciones de envío automático + historial de envíos.
+ *
+ * Esta pantalla solo ESCRIBE la programación; quien la ejecuta es el worker, un
+ * proceso aparte. De ahí dos consecuencias que confunden al depurar:
+ *
+ *  · si el worker no está corriendo, aquí todo parece correcto y no sale ningún
+ *    envío. El historial vacío es la primera pista;
+ *  · «Ejecutar ahora» tampoco ejecuta en el momento: encola el trabajo y el
+ *    worker lo toma en su siguiente barrido (hasta 5 s después).
+ *
+ * Los envíos corren con los permisos de QUIEN CREÓ la programación, no con los
+ * de quien los mira. Si a ese usuario le retiran el acceso a una empresa en ICG,
+ * sus envíos programados empiezan a fallar: es intencional, el scheduler no
+ * puede convertirse en una vía para leer datos a los que ya no se tiene acceso.
+ *
+ * La expresión cron se valida contra el servidor antes de guardar, con el mismo
+ * analizador que usa el worker. Una expresión inválida guardada llegó a detener
+ * el bucle completo del worker y con él todas las demás programaciones.
+ */
 export default function Programaciones({ permisos }) {
   const [tab, setTab] = useState('PROG');
   const [progs, setProgs] = useState([]);

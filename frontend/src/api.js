@@ -1,4 +1,22 @@
-// Cliente HTTP minimo. Siempre con credenciales para arrastrar la cookie de sesion.
+/**
+ * Cliente HTTP de la aplicación: ÚNICO punto por el que el frontend habla con
+ * el API. Ningún componente debe llamar a `fetch` directamente; si falta una
+ * operación, se añade aquí.
+ *
+ * Se centraliza por tres motivos concretos:
+ *  · `credentials: 'include'` en todas las llamadas — sin eso la cookie de
+ *    sesión no viaja y el servidor responde 401 aunque el usuario haya entrado;
+ *  · el error del servidor se convierte en una excepción con el mensaje real,
+ *    de modo que los componentes solo hacen try/catch y muestran `e.message`;
+ *  · las descargas binarias (exportar, definición) necesitan tratar la respuesta
+ *    como blob y disparar el «Guardar como», que no encaja en el flujo JSON.
+ *
+ * Las rutas son relativas a propósito: en desarrollo las redirige el proxy de
+ * Vite y en producción las sirve el mismo origen, así que no hay ninguna URL de
+ * servidor incrustada que haya que cambiar al desplegar en un cliente.
+ */
+
+/** Petición JSON. Lanza Error con el mensaje del servidor si la respuesta no es 2xx. */
 async function req(url, options = {}) {
   const res = await fetch(url, {
     credentials: 'include',

@@ -10,6 +10,27 @@ const CARDINALIDADES = [
 /**
  * Catálogo de orígenes de datos. Solo accesible al SUPERVISOR.
  * Los orígenes del paquete base son de solo lectura: para variarlos se duplican.
+ *
+ * PROPIEDAD DEL CATÁLOGO. Los orígenes de ICG-BASE se entregan con la
+ * herramienta y nuestras actualizaciones pueden corregirlos —así llegó la
+ * corrección de FACTORMONEDA a todos los clientes—. Por eso no se editan: quien
+ * necesite una variante la duplica y obtiene una copia propia, que ninguna
+ * actualización volverá a tocar.
+ *
+ * CARDINALIDAD DE LAS RELACIONES. Es el ajuste con más consecuencias de esta
+ * pantalla y el más fácil de equivocar:
+ *
+ *   N1 (muchos a uno)  → enriquecer. Ventas hacia artículos: cada venta tiene un
+ *                        artículo, así que unir no multiplica filas y el motor
+ *                        puede hacer JOIN directo.
+ *   NN (muchos a muchos) → el motor agrega CADA LADO POR SEPARADO antes de unir.
+ *                        Es lo que evita el fan-out: sin esto, cruzar ventas con
+ *                        existencias repetiría cada venta por cada fila de stock
+ *                        e inflaría los importes sin ningún aviso.
+ *
+ * Declarar como N1 algo que en realidad es NN produce cifras infladas que nadie
+ * detecta hasta contrastarlas contra ICG. Ante la duda, NN: es más lento, pero
+ * nunca miente.
  */
 export default function Origenes() {
   const [lista, setLista] = useState([]);

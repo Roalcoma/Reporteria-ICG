@@ -18,6 +18,22 @@ const rolesDe = (tipo) =>
 /**
  * Pantalla del Creador/Editor: define el reporte, escribe el T-SQL en el editor
  * Monaco (con realce de {PARAMETRO}) y tipifica los parametros detectados.
+ *
+ * CONSULTAS SEGÚN EL TIPO. Un reporte tiene una o dos consultas, cada una con un
+ * «rol» (ver `rolesDe`). Los cuatro roles se mantienen en el estado a la vez
+ * aunque solo se usen los del tipo activo: así, si el creador cambia de Simple a
+ * Multinivel y vuelve, no pierde lo que ya había escrito.
+ *
+ * PARÁMETROS AUTODETECTADOS. No se declaran a mano: se extraen del SQL buscando
+ * {NOMBRE} y se sincronizan en cada cambio. La sincronización CONSERVA la
+ * tipificación de los parámetros que siguen existiendo —de lo contrario, editar
+ * una línea del SQL reiniciaría a texto los tipos y las listas ya configuradas—
+ * y descarta los que desaparecieron de la consulta.
+ *
+ * VALIDACIÓN. El SQL se valida en el servidor, no aquí. Este editor no replica
+ * las reglas de sqlGuard a propósito: dos implementaciones de la misma regla se
+ * separan con el tiempo, y la que importa es la del servidor. Aquí solo se
+ * muestra el error que devuelve.
  */
 export default function ReporteEditor({ reporteId, onGuardado, onCancelar }) {
   const [reporte, setReporte] = useState({

@@ -1,4 +1,23 @@
 'use strict';
+/**
+ * Exportación del resultado de un reporte a PDF, Excel, CSV, HTML, JSON y XML.
+ *
+ * Todos los formatos parten de la MISMA estructura {columnas, filas} que produce
+ * el ejecutor, y aplican los formatos y alias configurados en cada columna: lo
+ * exportado se ve como lo que el usuario tenía en pantalla.
+ *
+ * pdfmake DEBE PERMANECER EN 0.2.x. La versión 0.3 eliminó la interfaz de
+ * servidor que se usa aquí (`new PdfPrinter(fonts)`), y el fallo aparece en
+ * tiempo de ejecución —«PdfPrinter is not a constructor»—, no al instalar.
+ *
+ * En HTML el logo del branding se incrusta en base64 dentro del propio archivo,
+ * en vez de enlazarlo: el documento debe verse igual al abrirlo desde un correo,
+ * sin conexión y sin acceso al servidor.
+ *
+ * Estas funciones devuelven un buffer y no escriben en disco. Quien exporta lo
+ * envía como descarga (rutas) o como adjunto (worker), sin dejar archivos
+ * temporales que después habría que limpiar.
+ */
 const ExcelJS = require('exceljs');
 const PdfPrinter = require('pdfmake');
 

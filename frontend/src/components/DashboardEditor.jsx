@@ -9,6 +9,11 @@ import {
   filtrosPara, reordenar, valorEfectivo
 } from '../dashboardUtil';
 
+/**
+ * Identificador local de un objeto del panel. No viene de la base de datos: la
+ * configuración entera viaja como un JSON, así que basta con que sea único
+ * dentro de ese documento. El prefijo ('w', 'f', 't') ayuda al depurar.
+ */
 const nuevoId = (p) => `${p}${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
 /** Objetos que se pueden añadir al panel. */
@@ -34,6 +39,41 @@ const nuevoWidget = (tipo, tabId) => ({
 /**
  * Panel de análisis: pestañas con objetos (gráficos, tablas, indicadores y
  * filtros) que se reordenan arrastrando y se comunican entre sí.
+ *
+ * ── CÓMO SE GUARDA UN PANEL ────────────────────────────────────────────────
+ * Todo el diseño vive en UN SOLO campo JSON (`dashboard.configuracion`), con
+ * esta forma:
+ *
+ *   { tabs:    [{ id, nombre }],
+ *     widgets: [{ id, tabId, tipo, titulo, ancho, alto, emite, recibe,
+ *                 consulta: { dimensiones, metricas, filtros, limite } }],
+ *     filtros: [{ id, tabId, campo, titulo, visible, editable, afecta }] }
+ *
+ * Ningún objeto guarda SQL: `consulta` solo contiene CLAVES LÓGICAS del catálogo
+ * ("VENTASDETALLE.IMPORTE"). El servidor las traduce a T-SQL, de modo que todo
+ * lo que llega a la base de datos proviene de una lista blanca. Esa es la razón
+ * de ser de la capa semántica y no debe rodearse aceptando SQL desde aquí.
+ *
+ * Guardar en un JSON y no en tablas normalizadas es deliberado: la estructura de
+ * un panel cambia con cada iteración de diseño, y migrar tablas en cada cliente
+ * por añadir una propiedad a un objeto no compensa. `normalizar()` rellena lo
+ * que falte, así que los paneles antiguos siguen abriéndose tras añadir campos.
+ *
+ * ── DOS MODOS EN UN MISMO COMPONENTE ───────────────────────────────────────
+ * `modoEdicion` alterna entre diseñar (paleta, arrastre, configurar, borrar) y
+ * analizar (filtrar, seleccionar, explorar). Es el mismo árbol de componentes
+ * para que lo que se ve al diseñar sea exactamente lo que verá el usuario.
+ *
+ * ── ESTADO DE ANÁLISIS: EFÍMERO A PROPÓSITO ────────────────────────────────
+ * `valoresFiltro` y `seleccion` NO se guardan ni se envían al servidor. Son la
+ * exploración del momento. Si se persistieran, cada usuario dejaría el panel
+ * filtrado para el siguiente, que lo vería con datos recortados sin saber por qué.
+ *
+ * ── FILTRADO CRUZADO ───────────────────────────────────────────────────────
+ * Cada objeto declara si `emite` (al pulsarlo filtra a los demás) y si `recibe`
+ * (le afectan los filtros del panel). Ambos por defecto, y ambos desactivables:
+ * un indicador de total anual suele querer `recibe: false` para servir de
+ * referencia fija mientras el resto se filtra.
  */
 export default function DashboardEditor({ dashboardId, onVolver, onGuardado, puedeCrear }) {
   const [d, setD] = useState(null);
@@ -86,6 +126,9 @@ export default function DashboardEditor({ dashboardId, onVolver, onGuardado, pue
   if (error && !d) return <div className="error">{error}</div>;
   if (!d) return <p className="muted">Cargando…</p>;
 
+  // Toda modificación del diseño pasa por setCfg, que reemplaza la configuración
+  // completa en lugar de mutarla. React necesita objetos nuevos para detectar el
+  // cambio: mutar cfg.widgets con push no volvería a pintar nada.
   const setCfg = (cambios) => setD({
     ...d, dashboard: { ...d.dashboard, configuracion: { ...cfg, ...cambios } }
   });
@@ -176,7 +219,17 @@ export default function DashboardEditor({ dashboardId, onVolver, onGuardado, pue
 
   const hayInteraccion = Object.values(valoresFiltro).some(v => v?.length) || seleccion;
 
-  /** Envoltorio común de cada objeto: cabecera, arrastre y tamaño. */
+  /**
+   * Envoltorio común de cada objeto: cabecera, arrastre y tamaño.
+   *
+   * OJO al mantenerlo: está definido DENTRO del componente, así que en cada
+   * render es una función nueva y React lo trata como un tipo distinto —
+   * desmonta y vuelve a montar el subárbol en lugar de actualizarlo. Hoy se
+   * tolera porque los hijos vuelven a consultar por su cuenta, pero es la
+   * primera sospecha ante parpadeos o pérdida de estado en un objeto del panel.
+   * La corrección es sacarlo al ámbito del módulo y pasarle lo que necesita
+   * por props.
+   */
   const Tarjeta = ({ objeto, esFiltro, children }) => (
     <section
       className={`tarjeta-widget ${arrastrando?.id === objeto.id ? 'arrastrando' : ''}`}

@@ -1,4 +1,33 @@
 'use strict';
+/**
+ * API de reportes: definiciones, ejecución, exportación, envío, versiones y
+ * portabilidad. Es el módulo de rutas más extenso porque cubre todo el ciclo de
+ * vida de un reporte.
+ *
+ * REPARTO DE RESPONSABILIDADES — las rutas no contienen lógica de negocio:
+ *   reporteRepository   lee y escribe definiciones en la BD de configuración;
+ *   reporteService      ejecuta (resuelve empresa, valida SQL, enlaza parámetros);
+ *   exportService       convierte el resultado a PDF/Excel/CSV/HTML/JSON/XML;
+ *   portabilidadService analiza e importa definiciones de otra instalación;
+ *   versionService      guarda el histórico de cada cambio.
+ * Una ruta autoriza, delega y audita. Si crece más allá de eso, la lógica va al
+ * servicio correspondiente.
+ *
+ * PERMISOS. `requireAuth` exige sesión; `requireEditor` exige además permiso de
+ * edición. Sobre eso se aplica la VISIBILIDAD POR PERFIL en el listado:
+ * `getReportesVisibles` devuelve null cuando el usuario los ve todos
+ * —administrador, o usuario sin perfiles asignados— y un conjunto de ids cuando
+ * está restringido. Ese `null` significa «sin restricción», no «ninguno»:
+ * confundirlo dejaría a media instalación sin ver nada.
+ *
+ * TODA OPERACIÓN QUEDA AUDITADA, incluidas las consultas y las exportaciones, y
+ * cada cambio de definición genera una versión. La auditoría no es opcional:
+ * al añadir una ruta que modifique o lea datos, registre el evento.
+ *
+ * El SQL se valida al GUARDAR y otra vez al EJECUTAR. Es intencional: si solo se
+ * validara al guardar, una definición aprobada con reglas antiguas seguiría
+ * ejecutándose después de endurecer sqlGuard.
+ */
 const express = require('express');
 const repo = require('../services/reporteRepository');
 const reporteService = require('../services/reporteService');
