@@ -6,6 +6,28 @@ const { icgPassMatches } = require('./icgPassword');
 
 class AuthError extends Error {}
 
+// Bug fix #4 — cache TTL de 2 min para la lista de usuarios activos.
+// ICG usa NORMALKEY (cifrado simétrico, no hash), así que no podemos filtrar
+// en SQL por contraseña: hay que traer todos y comparar en Node. El cache evita
+// el roundtrip completo en cada intento de login.
+let _usuariosCache = null;
+let _usuariosCacheAt = 0;
+const USUARIOS_TTL = 2 * 60 * 1000;
+
+async function _getUsuariosActivos(gpool) {
+  const ahora = Date.now();
+  if (_usuariosCache && ahora - _usuariosCacheAt < USUARIOS_TTL) return _usuariosCache;
+  const { recordset } = await gpool.request()
+    .query(`SELECT CODUSUARIO, USUARIO, NEWPASS, EMAIL
+            FROM dbo.USUARIOS WITH(NOLOCK)
+            WHERE ISNULL(DESCATALOGADO,'F') <> 'T'
+              AND ISNULL(BLOQUEADO,'F')     <> 'T'
+              AND NEWPASS IS NOT NULL AND NEWPASS <> ''`);
+  _usuariosCache = recordset;
+  _usuariosCacheAt = ahora;
+  return _usuariosCache;
+}
+
 /** 'LOCALHOST:CLARKS2025' -> { servidor:'LOCALHOST', baseDatos:'CLARKS2025' } */
 function parsePathBd(pathbd) {
   if (!pathbd) return { servidor: null, baseDatos: null };
@@ -30,12 +52,7 @@ class AuthService {
     if (!passwordPlano) throw new AuthError('Contrasena requerida');
 
     const gpool = await cm.getGeneralPool();
-    const { recordset } = await gpool.request()
-      .query(`SELECT CODUSUARIO, USUARIO, NEWPASS, EMAIL
-              FROM dbo.USUARIOS WITH(NOLOCK)
-              WHERE ISNULL(DESCATALOGADO,'F') <> 'T'
-                AND ISNULL(BLOQUEADO,'F')     <> 'T'
-                AND NEWPASS IS NOT NULL AND NEWPASS <> ''`);
+    const recordset = await _getUsuariosActivos(gpool);
 
     const coincidencias = recordset.filter(u => icgPassMatches(passwordPlano, u.NEWPASS));
     if (coincidencias.length === 0) throw new AuthError('Contrasena incorrecta');

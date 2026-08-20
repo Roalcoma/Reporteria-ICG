@@ -1,0 +1,21 @@
+{
+  "name": "icg-reporteria-vue",
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev":     "vite",
+    "build":   "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tanstack/vue-table":   "^8.20.5",
+    "@tanstack/vue-virtual": "^3.11.0",
+    "pinia":                 "^2.2.0",
+    "vue":                   "^3.5.13",
+    "vue-router":            "^4.4.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.4",
+    "vite":               "^5.4.8"
+  }
+}

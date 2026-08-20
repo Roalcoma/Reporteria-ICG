@@ -369,6 +369,17 @@ CREATE TABLE rep.ConfiguracionApp (
 GO
 
 /* ---------------------------------------------------------------------------
+   Tabla de sesiones HTTP (requerida por connect-mssql-v2 v6 — no se autocrea)
+   --------------------------------------------------------------------------- */
+IF OBJECT_ID('dbo.sessions') IS NULL
+CREATE TABLE dbo.sessions (
+    sid     NVARCHAR(255) NOT NULL PRIMARY KEY,
+    session NVARCHAR(MAX) NOT NULL,
+    expires DATETIME      NOT NULL
+);
+GO
+
+/* ---------------------------------------------------------------------------
    Semilla mínima
    --------------------------------------------------------------------------- */
 IF NOT EXISTS (SELECT 1 FROM rep.AppRol)

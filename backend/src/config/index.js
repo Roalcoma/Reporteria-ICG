@@ -1,5 +1,6 @@
 'use strict';
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 
 const num = (v, def) => (v === undefined ? def : Number(v));
 
@@ -20,28 +21,28 @@ module.exports = {
 
   // Pool FIJO -> BD de configuracion propia
   configDb: {
-    server: process.env.CONFIG_DB_SERVER || 'localhost',
+    server: process.env.DB_SERVER || 'localhost',
     database: process.env.CONFIG_DB_NAME || 'ICG_Reporteria_Config',
-    user: process.env.CONFIG_DB_USER,
-    password: process.env.CONFIG_DB_PASSWORD,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
     pool: { max: 10, min: 1, idleTimeoutMillis: 60000 },
     ...commonOptions
   },
 
   // Pool dedicado -> GENERAL de ICG (solo lectura)
   generalDb: {
-    server: process.env.GENERAL_DB_SERVER || 'localhost',
+    server: process.env.DB_SERVER || 'localhost',
     database: process.env.GENERAL_DB_NAME || 'GENERAL',
-    user: process.env.GENERAL_DB_USER,
-    password: process.env.GENERAL_DB_PASSWORD,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
     pool: { max: 5, min: 0, idleTimeoutMillis: 60000 },
     ...commonOptions
   },
 
   // Credencial por defecto para pools dinamicos de datos ICG
   dataDbDefault: {
-    user: process.env.DATA_DB_DEFAULT_USER,
-    password: process.env.DATA_DB_DEFAULT_PASSWORD
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD
   },
 
   dataPool: {

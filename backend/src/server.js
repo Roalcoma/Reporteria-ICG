@@ -1,64 +1,74 @@
 'use strict';
-/**
- * API HTTP de la reportería. Punto de entrada del proceso web (`npm start`).
- *
- * Aquí viven solo las rutas de SESIÓN y CONTEXTO —entrar, salir, elegir empresa—
- * porque son las que no pertenecen a ningún módulo concreto. Todo lo demás se
- * delega a `routes/`, un módulo por área funcional.
- *
- * Dos decisiones que conviene no revertir:
- *
- * 1. La empresa activa se guarda EN LA SESIÓN DEL SERVIDOR, no en el cliente, y
- *    se revalida contra ICG en cada cambio. Si el navegador pudiera dictar la
- *    empresa, manipular una petición daría acceso a datos de otra compañía.
- *
- * 2. Al responder nunca se envían `servidor` ni `baseDatos` de una empresa. El
- *    cliente trabaja con códigos; a qué servidor corresponden es información de
- *    infraestructura que no tiene por qué salir del backend (ver el `map` que
- *    descarta esos campos en /api/login y /api/empresas).
- *
- * El manejador de errores del final traduce AuthError a 403 y evita filtrar
- * trazas al cliente: los errores 500 se registran en consola, no en la respuesta.
- */
 require('dotenv').config();
-const express = require('express');
-const session = require('express-session');
-const cors = require('cors');
-const cfg = require('./config');
-const cm = require('./db/connectionManager');
+const express    = require('express');
+const session    = require('express-session');
+const cors       = require('cors');
+const rateLimit  = require('express-rate-limit');
+const MSSQLStore = require('connect-mssql-v2');
+const cfg        = require('./config');
+const cm         = require('./db/connectionManager');
 const { authService, AuthError } = require('./services/authService');
-const { requireAuth, asyncH } = require('./middleware/auth');
-const carpetasRoutes = require('./routes/carpetas.routes');
-const reportesRoutes = require('./routes/reportes.routes');
+const { requireAuth, asyncH }    = require('./middleware/auth');
+const carpetasRoutes       = require('./routes/carpetas.routes');
+const reportesRoutes       = require('./routes/reportes.routes');
 const programacionesRoutes = require('./routes/programaciones.routes');
-const auditoriaRoutes = require('./routes/auditoria.routes');
+const auditoriaRoutes      = require('./routes/auditoria.routes');
 const procedimientosRoutes = require('./routes/procedimientos.routes');
-const brandingRoutes = require('./routes/branding.routes');
-const usuariosRoutes = require('./routes/usuarios.routes');
-const perfilesRoutes = require('./routes/perfiles.routes');
-const dashboardsRoutes = require('./routes/dashboards.routes');
-const catalogoAdminRoutes = require('./routes/catalogoAdmin.routes');
+const brandingRoutes       = require('./routes/branding.routes');
+const usuariosRoutes       = require('./routes/usuarios.routes');
+const perfilesRoutes       = require('./routes/perfiles.routes');
+const dashboardsRoutes     = require('./routes/dashboards.routes');
+const catalogoAdminRoutes  = require('./routes/catalogoAdmin.routes');
+const correoRoutes         = require('./routes/correo.routes');
+const actualizacionRoutes  = require('./routes/actualizacion.routes');
 const { auditoria, EVENTO } = require('./services/auditoriaService');
 
-/** IP del cliente para la bitácora. */
-const ipDe = (req) => (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
-  .toString().split(',')[0].trim() || null;
+const ipDe = (req) =>
+  (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+    .toString().split(',')[0].trim() || null;
 
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
+
+// Bug fix #1 — CORS restringido al origen del frontend (no más origin:true).
+const origenesPermitidos = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',').map(s => s.trim());
+app.use(cors({ origin: origenesPermitidos, credentials: true }));
+
 app.use(express.json({ limit: '4mb' }));
+
+// Bug fix #2 — Sesiones persistidas en SQL Server (connect-mssql-v2).
+// La tabla [dbo].[sessions] se crea sola la primera vez que arranca el servidor.
+const storeConfig = {
+  server:   cfg.configDb.server,
+  database: cfg.configDb.database,
+  user:     cfg.configDb.user,
+  password: cfg.configDb.password,
+  options:  { encrypt: false, trustServerCertificate: true }
+};
 app.use(session({
-  secret: cfg.sessionSecret, resave: false, saveUninitialized: false,
+  store: new MSSQLStore(storeConfig, { autoRemove: true, autoRemoveInterval: 1000 * 60 * 30 }),
+  secret: cfg.sessionSecret,
+  resave: false,
+  saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: 'lax' }
 }));
 
-// --- Auth: SOLO CONTRASENA (la clave identifica al usuario en ICG) ---
+// Bug fix #3 — Rate limiting en el login: máx 20 intentos / 15 min por IP.
+app.use('/api/login', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos fallidos. Espere 15 minutos.' }
+}));
+
+// --- Auth: SOLO CONTRASEÑA ---
 app.post('/api/login', asyncH(async (req, res) => {
   const ip = ipDe(req);
   try {
     const u = await authService.loginPorPassword(req.body.password);
     req.session.user = u;
-    req.session.empresaGestion = null; // se elige en el paso siguiente
+    req.session.empresaGestion = null;
     const empresas = await authService.getEmpresasGestion(u.codUsuario);
     await auditoria.registrar({
       tipo: EVENTO.LOGIN, entidad: 'SESION', usuario: u,
@@ -67,12 +77,10 @@ app.post('/api/login', asyncH(async (req, res) => {
     res.json({
       usuario: u.usuario, codUsuario: u.codUsuario,
       rol: u.appRol.Nombre, permisos: u.appRol,
-      // El usuario debe elegir empresa de gestion antes de operar.
       empresas: empresas.map(({ servidor, baseDatos, ...pub }) => pub)
     });
   } catch (e) {
     if (e instanceof AuthError) {
-      // Nunca se registra la contraseña intentada, solo el hecho del fallo.
       await auditoria.registrar({
         tipo: EVENTO.LOGIN_FALLIDO, entidad: 'SESION', exitoso: false,
         descripcion: e.message, ip
@@ -98,7 +106,6 @@ app.get('/api/me', requireAuth, (req, res) => {
   });
 });
 
-/** Fija la empresa de GESTION activa de la sesion (revalidando el permiso). */
 app.post('/api/sesion/empresa', requireAuth, asyncH(async (req, res) => {
   const cod = Number(req.body.codEmpresa);
   const emp = await authService.assertEmpresaPermitida(
@@ -107,37 +114,34 @@ app.post('/api/sesion/empresa', requireAuth, asyncH(async (req, res) => {
   res.json(req.session.empresaGestion);
 }));
 
-// --- Empresas permitidas (selector de contexto) ---
 app.get('/api/empresas', requireAuth, asyncH(async (req, res) => {
-  const cod = req.session.user.codUsuario;
+  const cod  = req.session.user.codUsuario;
   const area = (req.query.area || 'GESTION').toUpperCase();
   let empresas;
   if (area === 'CONTABLE') {
-    // Solo las contables asociadas a la empresa de gestion activa.
-    const g = req.session.empresaGestion ? req.session.empresaGestion.codEmpresa : null;
+    const g = req.session.empresaGestion?.codEmpresa ?? null;
     empresas = await authService.getEmpresasContables(cod, g);
   } else {
     empresas = await authService.getEmpresasGestion(cod);
   }
-  // Nunca exponemos servidor/baseDatos al cliente.
   res.json(empresas.map(({ servidor, baseDatos, ...pub }) => pub));
 }));
 
-// --- Módulos de reportes ---
-app.use('/api/carpetas', carpetasRoutes);
-app.use('/api/reportes', reportesRoutes);
+app.use('/api/carpetas',      carpetasRoutes);
+app.use('/api/reportes',      reportesRoutes);
 app.use('/api/programaciones', programacionesRoutes);
-app.use('/api/auditoria', auditoriaRoutes);
+app.use('/api/auditoria',     auditoriaRoutes);
 app.use('/api/procedimientos', procedimientosRoutes);
-app.use('/api/branding', brandingRoutes);
-app.use('/api/usuarios', usuariosRoutes);
-app.use('/api/perfiles', perfilesRoutes);
-app.use('/api/dashboards', dashboardsRoutes);
-app.use('/api/catalogo', catalogoAdminRoutes);
+app.use('/api/branding',      brandingRoutes);
+app.use('/api/usuarios',      usuariosRoutes);
+app.use('/api/perfiles',      perfilesRoutes);
+app.use('/api/dashboards',    dashboardsRoutes);
+app.use('/api/catalogo',      catalogoAdminRoutes);
+app.use('/api/correo',        correoRoutes);
+app.use('/api/actualizacion', actualizacionRoutes);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-// --- Manejador de errores central ---
 app.use((err, req, res, _next) => {
   if (err instanceof AuthError) return res.status(403).json({ error: err.message });
   const status = err.status || 500;

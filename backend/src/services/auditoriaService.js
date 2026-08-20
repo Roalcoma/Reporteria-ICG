@@ -60,7 +60,7 @@ class AuditoriaService {
   }
 
   /** Consulta la bitácora con filtros opcionales. */
-  async consultar({ tipo, entidad, entidadId, codUsuario, desde, hasta, top = 200 } = {}) {
+  async consultar({ tipo, entidad, entidadId, codUsuario, login, desde, hasta, exitoso, top = 200 } = {}) {
     const pool = await cm.getConfigPool();
     const req = pool.request().input('top', sql.Int, Math.min(Number(top) || 200, 1000));
     const w = ['1=1'];
@@ -68,8 +68,11 @@ class AuditoriaService {
     if (entidad)    { req.input('ent', sql.VarChar(20), entidad); w.push('Entidad = @ent'); }
     if (entidadId)  { req.input('eid', sql.Int, entidadId);       w.push('EntidadId = @eid'); }
     if (codUsuario) { req.input('cod', sql.Int, codUsuario);      w.push('CodUsuarioICG = @cod'); }
+    if (login)      { req.input('login', sql.NVarChar(60), `%${login}%`); w.push('LoginICG LIKE @login'); }
     if (desde)      { req.input('d', sql.DateTime2, new Date(desde)); w.push('FechaEvento >= @d'); }
     if (hasta)      { req.input('h', sql.DateTime2, new Date(hasta)); w.push('FechaEvento <= @h'); }
+    if (exitoso === '1' || exitoso === 1 || exitoso === true)  { w.push('Exitoso = 1'); }
+    if (exitoso === '0' || exitoso === 0 || exitoso === false) { w.push('Exitoso = 0'); }
 
     const { recordset } = await req.query(
       `SELECT TOP (@top) EventoId, Tipo, Entidad, EntidadId, LoginICG, CodUsuarioICG,

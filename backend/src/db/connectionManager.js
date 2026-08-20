@@ -25,15 +25,18 @@ class ConnectionManager {
   }
 
   async getConfigPool() {
+    // Store the Promise immediately (before awaiting) so concurrent callers
+    // see a truthy value and share the same in-flight connection instead of
+    // each creating their own, which would leak all but the last.
     if (!this._configPool) {
-      this._configPool = await new sql.ConnectionPool(cfg.configDb).connect();
+      this._configPool = new sql.ConnectionPool(cfg.configDb).connect();
     }
     return this._configPool;
   }
 
   async getGeneralPool() {
     if (!this._generalPool) {
-      this._generalPool = await new sql.ConnectionPool(cfg.generalDb).connect();
+      this._generalPool = new sql.ConnectionPool(cfg.generalDb).connect();
     }
     return this._generalPool;
   }
@@ -50,18 +53,22 @@ class ConnectionManager {
     const hit = this._dataPools.get(key);
     if (hit) { hit.lastUsed = Date.now(); return hit.pool; }
 
-    const cred = await this._resolveCred(servidor);
-    const pool = await new sql.ConnectionPool({
-      server: servidor,
-      database: baseDatos,
-      user: cred.user,
-      password: cred.password,
-      pool: { max: cfg.dataPool.max, min: 0, idleTimeoutMillis: 30000 },
-      ...cfg.commonOptions,
-      options: { ...cfg.commonOptions.options, readOnlyIntent: true }
-    }).connect();
-
+    // Build the Promise chain BEFORE any await and store it immediately so
+    // concurrent callers racing here share the same in-flight connection.
+    const pool = this._resolveCred(servidor).then(cred =>
+      new sql.ConnectionPool({
+        server: servidor,
+        database: baseDatos,
+        user: cred.user,
+        password: cred.password,
+        pool: { max: cfg.dataPool.max, min: 0, idleTimeoutMillis: 30000 },
+        ...cfg.commonOptions,
+        options: { ...cfg.commonOptions.options, readOnlyIntent: true }
+      }).connect()
+    );
     this._dataPools.set(key, { pool, lastUsed: Date.now() });
+    // Remove entry on failure so the next call retries cleanly.
+    pool.catch(() => this._dataPools.delete(key));
     return pool;
   }
 
@@ -93,7 +100,8 @@ class ConnectionManager {
     const now = Date.now();
     for (const [key, v] of this._dataPools) {
       if (now - v.lastUsed > this._ttlMs) {
-        v.pool.close().catch(() => {});
+        // v.pool may be a Promise<Pool> — resolve before calling close().
+        Promise.resolve(v.pool).then(p => p.close()).catch(() => {});
         this._dataPools.delete(key);
       }
     }
@@ -101,9 +109,13 @@ class ConnectionManager {
 
   async closeAll() {
     clearInterval(this._sweeper);
-    const pools = [this._configPool, this._generalPool,
-      ...[...this._dataPools.values()].map(v => v.pool)];
-    await Promise.allSettled(pools.filter(Boolean).map(p => p.close()));
+    const close = p => Promise.resolve(p).then(pool => pool.close()).catch(() => {});
+    const all = [
+      this._configPool  && close(this._configPool),
+      this._generalPool && close(this._generalPool),
+      ...[...this._dataPools.values()].map(v => close(v.pool))
+    ].filter(Boolean);
+    await Promise.allSettled(all);
   }
 }
 

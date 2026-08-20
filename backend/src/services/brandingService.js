@@ -46,25 +46,31 @@ class BrandingService {
    * @param {number} codigoICG @param {'GESTION'|'CONTABLE'} tipo @param {number} [ejercicio]
    */
   async getBranding(codigoICG, tipo, ejercicio = null) {
-    const pool = await cm.getConfigPool();
-    const { recordset } = await pool.request()
-      .input('cod', sql.Int, codigoICG)
-      .input('tipo', sql.VarChar(10), tipo)
-      .input('ej', sql.Int, ejercicio)
-      .query(`SELECT TOP 1 b.LogoImagen, b.LogoMime, b.EncabezadoHtml, b.PieHtml
-              FROM rep.Empresa e
-              JOIN rep.EmpresaBranding b ON b.EmpresaId = e.EmpresaId AND b.Activo = 1
-              WHERE e.CodigoICG = @cod AND e.Tipo = @tipo
-                AND (@ej IS NULL OR e.Ejercicio IS NULL OR e.Ejercicio = @ej)`);
-    const b = recordset[0];
-    if (!b) return { logoDataUri: null, encabezadoHtml: '', pieHtml: '' };
-    return {
-      logoDataUri: b.LogoImagen
-        ? `data:${b.LogoMime || 'image/png'};base64,${Buffer.from(b.LogoImagen).toString('base64')}`
-        : null,
-      encabezadoHtml: b.EncabezadoHtml || '',
-      pieHtml: b.PieHtml || ''
-    };
+    try {
+      const pool = await cm.getConfigPool();
+      const { recordset } = await pool.request()
+        .input('cod', sql.Int, codigoICG)
+        .input('tipo', sql.VarChar(10), tipo)
+        .input('ej', sql.Int, ejercicio)
+        .query(`SELECT TOP 1 e.Nombre, b.LogoImagen, b.LogoMime, b.EncabezadoHtml, b.PieHtml
+                FROM rep.Empresa e
+                JOIN rep.EmpresaBranding b ON b.EmpresaId = e.EmpresaId AND b.Activo = 1
+                WHERE e.CodigoICG = @cod AND e.Tipo = @tipo
+                  AND (@ej IS NULL OR e.Ejercicio IS NULL OR e.Ejercicio = @ej)`);
+      const b = recordset[0];
+      if (!b) return { nombre: '', logoDataUri: null, encabezadoHtml: '', pieHtml: '' };
+      return {
+        nombre: b.Nombre || '',
+        logoDataUri: b.LogoImagen
+          ? `data:${b.LogoMime || 'image/png'};base64,${Buffer.from(b.LogoImagen).toString('base64')}`
+          : null,
+        encabezadoHtml: b.EncabezadoHtml || '',
+        pieHtml: b.PieHtml || ''
+      };
+    } catch {
+      // ponytail: tablas de branding aún no migradas → sin branding, no falla la exportación
+      return { nombre: '', logoDataUri: null, encabezadoHtml: '', pieHtml: '' };
+    }
   }
 
   /**

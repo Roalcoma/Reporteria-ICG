@@ -135,6 +135,28 @@ class ReporteService {
     return recordset.map(r => ({ valor: cv ? r[cv] : Object.values(r)[0],
       texto: ct ? r[ct] : (cv ? r[cv] : Object.values(r)[0]) }));
   }
+
+  /** Devuelve las columnas de una tabla ICG vía INFORMATION_SCHEMA. */
+  async getColumnasTablaIcg(tabla, sessionUser, empresaGestionSesion) {
+    const safeTabla = tabla.toUpperCase().replace(/[^A-Z0-9_]/g, '');
+    if (!safeTabla) { const e = new Error('Nombre de tabla inválido'); e.status = 400; throw e; }
+
+    let empSel;
+    if (empresaGestionSesion) {
+      empSel = await authService.assertEmpresaPermitida(
+        sessionUser.codUsuario, 'GESTION', empresaGestionSesion.codEmpresa, null);
+    } else {
+      const e = new Error('Seleccione una empresa de gestión'); e.status = 400; throw e;
+    }
+
+    const pool = await cm.getDataPool({ servidor: empSel.servidor, baseDatos: empSel.baseDatos });
+    const { recordset } = await pool.request().query(
+      `SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+       WHERE TABLE_NAME = '${safeTabla}' AND TABLE_SCHEMA = 'dbo'
+       ORDER BY ORDINAL_POSITION`
+    );
+    return recordset.map(r => ({ col: r.COLUMN_NAME, tipo: r.DATA_TYPE }));
+  }
 }
 
 const TIPOS_NUMERICOS = ['int', 'bigint', 'smallint', 'tinyint', 'decimal', 'numeric',

@@ -4,22 +4,25 @@
   "description": "Motor backend de la Herramienta de Reporteria Dinamica ICG",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "worker": "node src/worker.js",
-    "dev": "node --watch src/server.js",
+    "start": "node --max-old-space-size=512 src/server.js",
+    "worker": "node --max-old-space-size=512 src/worker.js",
+    "dev": "node --max-old-space-size=512 --watch src/server.js",
     "test": "node test/icgPassword.test.js && node test/sqlGuard.test.js && node test/engine.test.js && node test/export.test.js && node test/usuarios.test.js && node test/portabilidad.test.js && node test/formato.test.js && node test/filtros.test.js && node test/relaciones.test.js && node test/panel.test.js && node test/periodos.test.js"
   },
   "dependencies": {
+    "connect-mssql-v2": "^6.0.0",
     "cors": "^2.8.5",
     "cron-parser": "^5.7.0",
     "dotenv": "^16.4.5",
     "exceljs": "^4.4.0",
     "express": "^4.19.2",
+    "express-rate-limit": "^7.5.1",
     "express-session": "^1.18.0",
     "mssql": "^11.0.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.14",
-    "pdfmake": "^0.2.23"
+    "pdfmake": "^0.2.23",
+    "puppeteer": "^25.6.0"
   },
   "license": "UNLICENSED"
 }

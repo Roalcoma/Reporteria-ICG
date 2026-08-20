@@ -1,0 +1,114 @@
+:root {
+  --primary:        #86BB25;
+  --primary-hover:  #6FA01E;
+  --on-primary:     #FFFFFF;
+  --secondary:      #555652;
+  --accent:         #D97706;
+  --accent-suave:   #FEF3C7;
+
+  --fondo:          #F1F5F9;
+  --panel:          #FFFFFF;
+  --panel-alt:      #F8FAFC;
+  --muted:          #E9EEF6;
+  --borde:          #D8EBA6;
+  --borde-fuerte:   #CBD5E1;
+
+  --texto:          #202020;
+  --texto-suave:    #555652;
+  --texto-tenue:    #6B6B68;
+  --titulo:         #202020;
+
+  --ok:             #15803D;
+  --ok-suave:       #DCFCE7;
+  --error:          #B91C1C;
+  --error-suave:    #FEF2F2;
+  --aviso:          #B45309;
+  --aviso-suave:    #FFFBEB;
+  --foco:           #86BB25;
+
+  --simple:         #86BB25;
+  --simple-suave:   #EDF7D0;
+  --multinivel:     #7C3AED;
+  --multinivel-suave:#EDE9FE;
+  --dashboard:      #0F766E;
+  --dashboard-suave:#CCFBF1;
+
+  --e1: 4px;  --e2: 8px;  --e3: 12px; --e4: 16px; --e5: 24px; --e6: 32px;
+  --r1: 4px;  --r2: 6px;  --r3: 8px;  --r4: 12px;
+
+  --sombra1: 0 1px 2px rgba(15,23,42,.06);
+  --sombra2: 0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
+  --sombra3: 0 4px 12px rgba(15,23,42,.10);
+
+  --fuente: 'Fira Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fuente-mono: 'Fira Code', ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, monospace;
+  --t-xs: 11px; --t-sm: 12px; --t-base: 13px; --t-md: 14px;
+  --t-lg: 16px; --t-xl: 19px; --t-2xl: 23px;
+
+  --transicion: 160ms cubic-bezier(.4,0,.2,1);
+  --transicion-lenta: 240ms cubic-bezier(.4,0,.2,1);
+
+  /* sidebar */
+  --sidebar-bg:          #202020;
+  --sidebar-borde:       #2E2E2B;
+  --sidebar-texto:       #9A9A96;
+  --sidebar-texto-hover: #D0D0CB;
+  --sidebar-activo-bg:   rgba(134,187,37,.22);
+  --sidebar-activo-bar:  #86BB25;
+  --sidebar-activo-txt:  #E8F5C8;
+  --sidebar-ancho:       224px;
+  --header-alto:         52px;
+}
+
+:root[data-tema="oscuro"] {
+  --primary:        #A5D145;
+  --primary-hover:  #C2E475;
+  --on-primary:     #202020;
+  --secondary:      #86BB25;
+  --accent:         #FBBF24;
+  --accent-suave:   #422006;
+
+  --fondo:          #141412;
+  --panel:          #1C1C1A;
+  --panel-alt:      #242422;
+  --muted:          #2A2A27;
+  --borde:          #3A3A36;
+  --borde-fuerte:   #4A4A46;
+
+  --texto:          #E8E8E4;
+  --texto-suave:    #ABABА6;
+  --texto-tenue:    #888884;
+  --titulo:         #C8E87A;
+
+  --ok:             #4ADE80;
+  --ok-suave:       #052E16;
+  --error:          #F87171;
+  --error-suave:    #2A1113;
+  --aviso:          #FBBF24;
+  --aviso-suave:    #2C1D05;
+  --foco:           #A5D145;
+
+  --simple:         #A5D145;
+  --simple-suave:   #1A2E0A;
+  --multinivel:     #C4B5FD;
+  --multinivel-suave:#2A1F4D;
+  --dashboard:      #5EEAD4;
+  --dashboard-suave:#0B3B37;
+
+  --sombra1: 0 1px 2px rgba(0,0,0,.35);
+  --sombra2: 0 1px 3px rgba(0,0,0,.45);
+  --sombra3: 0 6px 18px rgba(0,0,0,.55);
+
+  --sidebar-bg:          #161614;
+  --sidebar-borde:       #252522;
+  --sidebar-activo-bg:   rgba(134,187,37,.18);
+  --sidebar-activo-bar:  #86BB25;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --transicion: 1ms; --transicion-lenta: 1ms; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}

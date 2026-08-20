@@ -320,8 +320,7 @@ class CatalogoAdminService {
       const e = new Error('Esa relación pertenece al catálogo base y no se puede eliminar.');
       e.status = 409; throw e;
     }
-    const pool2 = await cm.getConfigPool();
-    await pool2.request().input('id', sql.Int, relacionId)
+    await pool.request().input('id', sql.Int, relacionId)
       .query(`DELETE FROM rep.CatalogoRelacion WHERE RelacionId = @id`);
     catalogo.invalidar();
   }

@@ -57,6 +57,58 @@ function contextoEjecucion(body) {
   };
 }
 
+// ---- Catálogo de tablas ICG para asistente de LISTA_SQL ----
+const TABLAS_ICG_CATALOGO = [
+  { tabla: 'ARTICULOS', label: 'Artículos', columnas: [
+    { col: 'CODARTICULO', label: 'Código' }, { col: 'DESCRIPCION', label: 'Descripción' },
+    { col: 'CODGRUPO', label: 'Grupo' }, { col: 'CODSUBGRUPO', label: 'Subgrupo' },
+    { col: 'CODUNIDAD', label: 'Unidad' }, { col: 'CODPROVEEDOR', label: 'Proveedor' },
+    { col: 'REFERENCIA', label: 'Referencia' },
+  ]},
+  { tabla: 'ARTICULOSCAMPOSLIBRES', label: 'Campos libres art.', columnas: [
+    { col: 'CODARTICULO', label: 'Código' }, { col: 'CAMPO1', label: 'Campo 1' },
+    { col: 'CAMPO2', label: 'Campo 2' }, { col: 'CAMPO3', label: 'Campo 3' },
+  ]},
+  { tabla: 'ALMACENES', label: 'Almacenes', columnas: [
+    { col: 'CODALMACEN', label: 'Código' }, { col: 'DESCRIPCION', label: 'Descripción' },
+  ]},
+  { tabla: 'CLIENTES', label: 'Clientes', columnas: [
+    { col: 'CODCLIENTE', label: 'Código' }, { col: 'NOMBRE', label: 'Nombre' },
+    { col: 'CODGRUPO', label: 'Grupo' }, { col: 'CODPOBLACION', label: 'Población' },
+    { col: 'CIF', label: 'CIF/RUC' },
+  ]},
+  { tabla: 'PROVEEDORES', label: 'Proveedores', columnas: [
+    { col: 'CODPROVEEDOR', label: 'Código' }, { col: 'NOMBRE', label: 'Nombre' },
+    { col: 'CIF', label: 'CIF/RUC' },
+  ]},
+  { tabla: 'VENDEDORES', label: 'Vendedores', columnas: [
+    { col: 'CODVENDEDOR', label: 'Código' }, { col: 'NOMBRE', label: 'Nombre' },
+  ]},
+  { tabla: 'GRUPOSART', label: 'Grupos artículo', columnas: [
+    { col: 'CODGRUPO', label: 'Código' }, { col: 'DESCRIPCION', label: 'Descripción' },
+  ]},
+  { tabla: 'SUBGRUPOSART', label: 'Subgrupos artículo', columnas: [
+    { col: 'CODSUBGRUPO', label: 'Código' }, { col: 'DESCRIPCION', label: 'Descripción' },
+    { col: 'CODGRUPO', label: 'Grupo' },
+  ]},
+  { tabla: 'SERIES', label: 'Series', columnas: [
+    { col: 'SERIE', label: 'Serie' }, { col: 'DESCRIPCION', label: 'Descripción' },
+  ]},
+  { tabla: 'ALBVENTACAB', label: 'Cabecera ventas', columnas: [
+    { col: 'NUMSERIE', label: 'Nro serie' }, { col: 'NUMALBARAN', label: 'Nro albarán' },
+    { col: 'CODCLIENTE', label: 'Cliente' }, { col: 'SERIE', label: 'Serie' },
+    { col: 'CODVENDEDOR', label: 'Vendedor' },
+  ]},
+];
+
+router.get('/tablas-icg/catalogo', requireAuth, (_req, res) => res.json(TABLAS_ICG_CATALOGO));
+
+router.get('/tablas-icg/columnas', requireAuth, asyncH(async (req, res) => {
+  const cols = await reporteService.getColumnasTablaIcg(
+    req.query.tabla || '', req.session.user, req.session.empresaGestion);
+  res.json(cols);
+}));
+
 // ---- Lectura / CRUD de definiciones ----
 router.get('/', requireAuth, asyncH(async (req, res) => {
   const carpetaId = req.query.carpetaId != null ? Number(req.query.carpetaId) : null;
@@ -218,7 +270,7 @@ router.post('/:id/exportar', requireAuth, asyncH(async (req, res) => {
   // La empresa efectiva viene del resultado: en reportes de GESTIÓN el cliente no
   // envía codEmpresa (se usa la de la sesión), así que leerlo de `seleccion` dejaba
   // los reportes de gestión sin branding.
-  const conBranding = ['HTML', 'PDF'].includes(formato);
+  const conBranding = ['HTML', 'PDF', 'EXCEL'].includes(formato);
   const branding = conBranding && out.empresa?.codEmpresa != null
     ? await brandingService.getBranding(out.empresa.codEmpresa, out.reporte.Area, out.empresa.ejercicio)
     : null;
@@ -255,7 +307,7 @@ router.post('/:id/enviar', requireAuth, asyncH(async (req, res) => {
 
   const out = await reporteService.ejecutar(Number(req.params.id), seleccion, parametros,
     req.session.user, req.session.empresaGestion);
-  const branding = ['HTML', 'PDF'].includes(formato) && out.empresa?.codEmpresa != null
+  const branding = ['HTML', 'PDF', 'EXCEL'].includes(formato) && out.empresa?.codEmpresa != null
     ? await brandingService.getBranding(out.empresa.codEmpresa, out.reporte.Area, out.empresa.ejercicio)
     : null;
   const buffer = await exportService.exportar(formato, out.rows || out.cabecera || [], out.columnas, {

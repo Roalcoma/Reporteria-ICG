@@ -4,8 +4,13 @@ const sql = require('mssql');
 const cm = require('../db/connectionManager');
 const { requireAuth, asyncH } = require('../middleware/auth');
 const { proximaEjecucion, validarCron } = require('../services/cronUtil');
+const { auditoria, EVENTO } = require('../services/auditoriaService');
 
 const router = express.Router();
+
+const ipDe = (req) =>
+  (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '')
+    .toString().split(',')[0].trim() || null;
 
 /** Exige privilegio de programar envíos automáticos. */
 function requireProgramar(req, res, next) {
@@ -55,23 +60,48 @@ router.post('/', requireProgramar, asyncH(async (req, res) => {
              Destinatarios,Asunto,Cuerpo,CorreoConfigId,CreadoPor,ProximaEjecucion)
             OUTPUT inserted.ProgramacionId
             VALUES (@rid,@nom,@cron,@fmt,@eid,@par,@dest,@asu,@cue,@cc,@creado,@prox)`);
-  res.status(201).json({ ProgramacionId: recordset[0].ProgramacionId });
+  const pid = recordset[0].ProgramacionId;
+  await auditoria.registrar({
+    tipo: EVENTO.PROGRAMACION_CREAR, entidad: 'PROGRAMACION', entidadId: pid,
+    usuario: req.session.user,
+    descripcion: `Creó la programación "${b.Nombre}" (${b.CronExpresion})`,
+    ip: ipDe(req)
+  });
+  res.status(201).json({ ProgramacionId: pid });
 }));
 
 // Activar / desactivar.
 router.put('/:id/activo', requireProgramar, asyncH(async (req, res) => {
   const pool = await cm.getConfigPool();
+  const activo = !!req.body.Activo;
   await pool.request()
     .input('id', sql.Int, req.params.id)
-    .input('a', sql.Bit, !!req.body.Activo)
+    .input('a', sql.Bit, activo)
     .query(`UPDATE rep.Programacion SET Activo = @a WHERE ProgramacionId = @id`);
+  await auditoria.registrar({
+    tipo: EVENTO.PROGRAMACION_CAMBIAR, entidad: 'PROGRAMACION', entidadId: Number(req.params.id),
+    usuario: req.session.user,
+    descripcion: `${activo ? 'Activó' : 'Desactivó'} la programación #${req.params.id}`,
+    ip: ipDe(req)
+  });
   res.json({ ok: true });
 }));
 
 router.delete('/:id', requireProgramar, asyncH(async (req, res) => {
+  const id = Number(req.params.id);
   const pool = await cm.getConfigPool();
-  await pool.request().input('id', sql.Int, req.params.id)
+  // Captura nombre antes de borrar para el log
+  const { recordset: prev } = await pool.request()
+    .input('id', sql.Int, id)
+    .query(`SELECT Nombre FROM rep.Programacion WHERE ProgramacionId = @id`);
+  await pool.request().input('id', sql.Int, id)
     .query(`DELETE FROM rep.Programacion WHERE ProgramacionId = @id`);
+  await auditoria.registrar({
+    tipo: EVENTO.PROGRAMACION_ELIMINAR, entidad: 'PROGRAMACION', entidadId: id,
+    usuario: req.session.user,
+    descripcion: `Eliminó la programación "${prev[0]?.Nombre ?? id}"`,
+    ip: ipDe(req)
+  });
   res.json({ ok: true });
 }));
 
