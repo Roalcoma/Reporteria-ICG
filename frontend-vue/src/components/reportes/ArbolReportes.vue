@@ -173,6 +173,7 @@ async function borrarReporte(r) {
   if (ok) accion(async () => {
     await api.eliminarReporte(r.ReporteId);
     if (seleccionado.value === r.ReporteId) seleccionar(null);
+    toast.ok(`Reporte "${r.Nombre}" eliminado`);
   });
 }
 

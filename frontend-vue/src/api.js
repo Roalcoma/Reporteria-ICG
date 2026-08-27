@@ -125,6 +125,15 @@ export const api = {
   opcionesParam: (id, paramId, seleccion) =>
     post(`/api/reportes/${id}/parametros/${paramId}/opciones`, seleccion),
 
+  empresaSps: (filtro) =>
+    req(`/api/procedimientos/empresa/sps${filtro ? `?filtro=${encodeURIComponent(filtro)}` : ''}`),
+  empresaVistas: (filtro) =>
+    req(`/api/procedimientos/empresa/vistas${filtro ? `?filtro=${encodeURIComponent(filtro)}` : ''}`),
+  empresaDefinicion: (esquema, nombre) =>
+    req(`/api/procedimientos/empresa/definicion?esquema=${encodeURIComponent(esquema)}&nombre=${encodeURIComponent(nombre)}`),
+  empresaAlterar: (definicion) =>
+    req('/api/procedimientos/empresa/alterar', { method: 'PUT', body: JSON.stringify({ definicion }) }),
+
   tablasIcgCatalogo: () => req('/api/reportes/tablas-icg/catalogo'),
   tablasIcgColumnas: (tabla, codEmpresa) =>
     req(`/api/reportes/tablas-icg/columnas?tabla=${encodeURIComponent(tabla)}&codEmpresa=${codEmpresa ?? ''}`),

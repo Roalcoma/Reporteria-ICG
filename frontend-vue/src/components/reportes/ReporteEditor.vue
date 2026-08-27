@@ -95,8 +95,7 @@
                 Descubrir columnas
               </button>
             </div>
-            <textarea class="sql-area" v-model="consultaFlat.SqlText"
-              placeholder="SELECT columna1, columna2&#10;FROM tabla&#10;WHERE condicion = {PARAMETRO}" spellcheck="false" />
+            <SqlEditor v-model="consultaFlat.SqlText" minHeight="250px" />
           </div>
         </template>
 
@@ -110,8 +109,7 @@
                 Descubrir columnas cabecera
               </button>
             </div>
-            <textarea class="sql-area" v-model="consultaCabecera.SqlText"
-              placeholder="SELECT ... FROM ..." spellcheck="false" />
+            <SqlEditor v-model="consultaCabecera.SqlText" minHeight="250px" />
           </div>
 
           <div class="vinculo-fila">
@@ -136,8 +134,7 @@
                 Descubrir columnas detalle
               </button>
             </div>
-            <textarea class="sql-area" v-model="consultaDetalle.SqlText"
-              placeholder="SELECT ... FROM ..." spellcheck="false" />
+            <SqlEditor v-model="consultaDetalle.SqlText" minHeight="250px" />
           </div>
         </template>
 
@@ -222,8 +219,7 @@
             <template v-if="p.ControlUI === 'LISTA_SQL'">
               <div class="campo">
                 <label>SQL para poblar la lista</label>
-                <textarea v-model="p.SqlOrigen" rows="2" spellcheck="false" class="sql-area-sm"
-                  placeholder="SELECT id, descripcion FROM tabla ORDER BY descripcion" />
+                <SqlEditor v-model="p.SqlOrigen" minHeight="80px" />
               </div>
               <div class="param-fila">
                 <div class="campo">
@@ -345,6 +341,7 @@ import { api } from '@/api.js';
 import { useToast } from '@/composables/useToast.js';
 import { useSessionStore } from '@/stores/session.js';
 import TablaICGSelector from './TablaICGSelector.vue';
+import SqlEditor from '@/components/ui/SqlEditor.vue';
 
 const props = defineProps({ reporte: { type: Object, required: true } });
 const emit  = defineEmits(['guardado', 'cerrar']);

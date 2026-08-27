@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="state" class="modal-backdrop" @click.self="cancelar" @keydown.esc="cancelar">
+      <div v-if="ms.state" class="modal-backdrop" @click.self="cancelar" @keydown.esc="cancelar">
         <div
           class="modal-card"
           role="dialog"
@@ -11,13 +11,13 @@
           ref="cardRef"
         >
           <!-- Ícono -->
-          <div class="modal-icono" :class="state.danger ? 'modal-icono--peligro' : 'modal-icono--info'">
+          <div class="modal-icono" :class="ms.state.danger ? 'modal-icono--peligro' : 'modal-icono--info'">
             <!-- peligro / confirmar destructivo -->
-            <svg v-if="state.danger" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg v-if="ms.state.danger" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
             <!-- confirmar neutro -->
-            <svg v-else-if="state.type === 'confirm'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg v-else-if="ms.state.type === 'confirm'" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
             <!-- input / editar -->
@@ -27,22 +27,22 @@
           </div>
 
           <!-- Título -->
-          <h3 id="modal-title" class="modal-titulo">{{ state.title }}</h3>
+          <h3 id="modal-title" class="modal-titulo">{{ ms.state.title }}</h3>
 
           <!-- Mensaje (solo confirm) -->
-          <p v-if="state.type === 'confirm' && state.message" class="modal-mensaje">
-            {{ state.message }}
+          <p v-if="ms.state.type === 'confirm' && ms.state.message" class="modal-mensaje">
+            {{ ms.state.message }}
           </p>
 
           <!-- Input (solo input) -->
-          <div v-if="state.type === 'input'" class="campo">
-            <label v-if="state.label" for="modal-input">{{ state.label }}</label>
+          <div v-if="ms.state.type === 'input'" class="campo">
+            <label v-if="ms.state.label" for="modal-input">{{ ms.state.label }}</label>
             <input
               id="modal-input"
               ref="inputRef"
               v-model="valorInput"
               type="text"
-              :placeholder="state.placeholder"
+              :placeholder="ms.state.placeholder"
               class="modal-input"
               @keydown.enter="confirmar"
               @keydown.esc="cancelar"
@@ -54,11 +54,11 @@
             <button class="btn btn-ghost" @click="cancelar">Cancelar</button>
             <button
               class="btn"
-              :class="state.danger ? 'btn-danger-solid' : 'btn-primary'"
+              :class="ms.state.danger ? 'btn-danger-solid' : 'btn-primary'"
               @click="confirmar"
-              :disabled="state.type === 'input' && !valorInput.trim()"
+              :disabled="ms.state.type === 'input' && !valorInput.trim()"
             >
-              {{ state.danger ? 'Eliminar' : 'Confirmar' }}
+              {{ ms.state.danger ? 'Eliminar' : 'Confirmar' }}
             </button>
           </div>
         </div>
@@ -71,14 +71,13 @@
 import { ref, watch, nextTick } from 'vue';
 import { useModalStore } from '@/stores/modal.js';
 
-const store    = useModalStore();
-const { state } = store;
+const ms = useModalStore();
 
 const cardRef    = ref(null);
 const inputRef   = ref(null);
 const valorInput = ref('');
 
-watch(() => state.value, async (s) => {
+watch(() => ms.state, async (s) => {
   if (!s) return;
   valorInput.value = s.defaultValue || '';
   await nextTick();
@@ -87,16 +86,16 @@ watch(() => state.value, async (s) => {
 });
 
 function confirmar() {
-  if (state.value?.type === 'input') {
+  if (ms.state?.type === 'input') {
     if (!valorInput.value.trim()) return;
-    store.close(valorInput.value.trim());
+    ms.close(valorInput.value.trim());
   } else {
-    store.close(true);
+    ms.close(true);
   }
 }
 
 function cancelar() {
-  store.close(null);
+  ms.close(null);
 }
 </script>
 

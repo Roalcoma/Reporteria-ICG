@@ -1,7 +1,23 @@
 /** Versión de la aplicación y registro de cambios. */
-export const APP_VERSION = '0.6.0';
+export const APP_VERSION = '0.7.0';
 
 export const VERSIONES = [
+  {
+    version: '0.7.0',
+    fecha: '2026-08-27',
+    cambios: [
+      'Feature: editor SQL con CodeMirror 6 — syntax highlighting SQL en SqlEditor.vue',
+      'Feature: Procedimientos — dos tabs (Stored Procedures y Vistas) con lista + editor de definición',
+      'Backend: GET /api/procedimientos/empresa/sps, /vistas, /definicion — lista y lectura de SPs/Vistas en BD empresa',
+      'Backend: PUT /api/procedimientos/empresa/alterar — executa ALTER PROCEDURE/VIEW con validación de prefijo',
+      'API: empresaSps, empresaVistas, empresaDefinicion, empresaAlterar en api.js',
+      'Feature: ReporteEditor usa SqlEditor (CodeMirror 6) en lugar de textarea para los campos SQL — syntax highlighting en consulta principal, cabecera, detalle y LISTA_SQL de parámetros',
+      'Fix: eliminar reporte ahora muestra toast de confirmación tras borrado exitoso',
+      'Fix: AppModal crash en mount — useModalStore() retorna proxy reactivo; acceder ms.state directamente (no destructurar ref)',
+      'Fix: import corrompido @/stores/ms.state.js → @/stores/modal.js restaurado',
+      'Feature: Procedimientos — filtro por esquema con chips, badges de tipo, fechas y conteos',
+    ],
+  },
   {
     version: '0.6.0',
     fecha: '2026-08-20',
@@ -52,6 +68,7 @@ export const VERSIONES = [
 ];
 
 export const COMMITS = [
+  { version: '0.7.0', mensaje: 'feat: editor SQL CodeMirror 6 + módulo Procedimientos (SPs y Vistas)' },
   { version: '0.4.0', mensaje: 'feat: módulo actualización automática desde GitHub Releases' },
   { version: '0.3.0', mensaje: 'feat: módulo auditoría UI + cobertura audit programaciones' },
 ];
