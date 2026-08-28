@@ -28,6 +28,7 @@ class QueryTemplateEngine {
   build(sqlTemplate, definiciones, valores, request, extra = {}, opciones = {}) {
     this._assertReadOnly(sqlTemplate, opciones);
     const defMap = new Map(definiciones.map(d => [d.Nombre, d]));
+    const registrados = new Set();
 
     return sqlTemplate.replace(TOKEN_RE, (_, nombre) => {
       if (nombre in extra) return `@${nombre}`;      // parametros del sistema
@@ -46,16 +47,22 @@ class QueryTemplateEngine {
 
       // 2) Multiseleccion -> un solo parametro enlazado + STRING_SPLIT (SS2016).
       if (def.PermiteMultiple) {
-        const arr = Array.isArray(raw) ? raw : String(raw ?? '').split(',');
-        const joined = arr.filter(v => v !== '' && v != null)
-                          .map(v => String(coerce(def, v))).join(MULTI_SEP);
-        request.input(nombre, toMssqlType(def), joined);
+        if (!registrados.has(nombre)) {
+          const arr = Array.isArray(raw) ? raw : String(raw ?? '').split(',');
+          const joined = arr.filter(v => v !== '' && v != null)
+                            .map(v => String(coerce(def, v))).join(MULTI_SEP);
+          request.input(nombre, toMssqlType(def), joined);
+          registrados.add(nombre);
+        }
         // El creador escribe:  col IN ({VENDEDORES})
         return `SELECT value FROM STRING_SPLIT(@${nombre}, '${MULTI_SEP}')`;
       }
 
       // 3) Valor escalar -> parametro ENLAZADO (inmune a inyeccion).
-      request.input(nombre, toMssqlType(def), coerce(def, raw));
+      if (!registrados.has(nombre)) {
+        request.input(nombre, toMssqlType(def), coerce(def, raw));
+        registrados.add(nombre);
+      }
       return `@${nombre}`;
     });
   }

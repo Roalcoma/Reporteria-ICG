@@ -1,7 +1,14 @@
 /** Versión de la aplicación y registro de cambios. */
-export const APP_VERSION = '0.7.0';
+export const APP_VERSION = '0.7.1';
 
 export const VERSIONES = [
+  {
+    version: '0.7.1',
+    fecha: '2026-08-28',
+    cambios: [
+      'Fix: parámetro repetido en SQL ya no lanza "already been declared" — queryTemplateEngine registra request.input() una sola vez por nombre',
+    ],
+  },
   {
     version: '0.7.0',
     fecha: '2026-08-27',
