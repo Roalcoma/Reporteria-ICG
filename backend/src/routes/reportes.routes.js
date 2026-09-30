@@ -211,6 +211,12 @@ router.delete('/:id', requireEditor, asyncH(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ---- Vista preferida (orden, agrupado, alias, totales, formatos) ----
+router.put('/:id/vista', requireEditor, asyncH(async (req, res) => {
+  await repo.guardarVista(Number(req.params.id), req.body);
+  res.json({ ok: true });
+}));
+
 // ---- Evolución / versiones ----
 router.get('/:id/versiones', requireAuth, asyncH(async (req, res) => {
   res.json(await versionService.historial(Number(req.params.id)));

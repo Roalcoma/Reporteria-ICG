@@ -10,9 +10,12 @@
     <template v-else>
       <!-- Meta -->
       <div class="grid-meta">
-        {{ rows.length }} fila{{ rows.length === 1 ? '' : 's' }}
+        <span>{{ rows.length }} fila{{ rows.length === 1 ? '' : 's' }}</span>
         <span v-if="groupByCol" class="grid-info"> · agrupado por <strong>{{ colLabel(groupByCol) }}</strong> ({{ sortedGroups.length }} grupos)</span>
         <span v-else-if="table.getPageCount() > 1" class="grid-info"> — página {{ pageIndex + 1 }} de {{ table.getPageCount() }}</span>
+        <button v-if="dirty && reporteId != null" class="btn-guardar-vista" @click="savePrefs">
+          💾 Guardar vista
+        </button>
       </div>
 
       <!-- Table -->
@@ -170,9 +173,37 @@ const AGG_FNS = [
 ];
 
 const props = defineProps({
-  rows:     { type: Array, default: () => [] },
-  columnas: { type: Array, default: () => [] }
+  rows:      { type: Array, default: () => [] },
+  columnas:  { type: Array, default: () => [] },
+  reporteId: { type: [Number, String], default: null },
+  vista:     { type: Object, default: null }
 });
+const emit = defineEmits(['save-vista']);
+
+// ── persistencia de vista ──────────────────────────────
+const dirty = ref(false);
+
+function applyVista(v) {
+  if (!v) return;
+  if (Array.isArray(v.columnOrder)) columnOrder.value = v.columnOrder;
+  if (v.groupByCol !== undefined)   groupByCol.value   = v.groupByCol;
+  if (v.colAliases)  colAliases.value  = v.colAliases;
+  if (v.colAggs)     colAggs.value     = v.colAggs;
+  if (v.colFormatos) colFormatos.value = v.colFormatos;
+  if (v.colPatrones) colPatrones.value = v.colPatrones;
+}
+
+function savePrefs() {
+  emit('save-vista', {
+    columnOrder: columnOrder.value,
+    groupByCol:  groupByCol.value,
+    colAliases:  colAliases.value,
+    colAggs:     colAggs.value,
+    colFormatos: colFormatos.value,
+    colPatrones: colPatrones.value,
+  });
+  dirty.value = false;
+}
 
 // ── state ──────────────────────────────────────────────
 const sorting        = ref([]);
@@ -201,7 +232,7 @@ const baseCols = computed(() => {
   return Object.keys(props.rows[0] || {}).map(k => ({ id: k, label: k, formato: 'TEXTO', patron: null }));
 });
 
-// Al cambiar el conjunto de columnas (nuevo reporte), reiniciar orden y customizaciones
+// Al cambiar el conjunto de columnas (nuevo reporte), reiniciar y cargar prefs guardadas
 watch(baseCols, (cols) => {
   columnOrder.value    = cols.map(c => c.id);
   colAliases.value     = {};
@@ -210,6 +241,8 @@ watch(baseCols, (cols) => {
   colPatrones.value    = {};
   groupByCol.value     = null;
   expandedGroups.value = new Set();
+  applyVista(props.vista);
+  dirty.value = false;
 }, { immediate: true });
 
 const effectiveCols = computed(() => {
@@ -276,6 +309,7 @@ function dragDrop(toId) {
   order.splice(to, 0, draggedColId.value);
   columnOrder.value  = order;
   draggedColId.value = null;
+  dirty.value = true;
 }
 
 // ── agrupación ─────────────────────────────────────────
@@ -345,6 +379,7 @@ function applyRename() {
   const v = menu.value.alias.trim();
   if (v) colAliases.value = { ...colAliases.value, [menu.value.colId]: v };
   menu.value.renaming = false;
+  dirty.value = true;
 }
 
 function moveLeft() {
@@ -352,6 +387,7 @@ function moveLeft() {
   const i = order.indexOf(menu.value.colId);
   if (i > 0) [order[i - 1], order[i]] = [order[i], order[i - 1]];
   columnOrder.value = order;
+  dirty.value = true;
   closeMenu();
 }
 function moveRight() {
@@ -359,17 +395,20 @@ function moveRight() {
   const i = order.indexOf(menu.value.colId);
   if (i < order.length - 1) [order[i], order[i + 1]] = [order[i + 1], order[i]];
   columnOrder.value = order;
+  dirty.value = true;
   closeMenu();
 }
 function setAgg(tipo) {
   const a = { ...colAggs.value };
   tipo === null ? delete a[menu.value.colId] : (a[menu.value.colId] = tipo);
   colAggs.value = a;
+  dirty.value = true;
   closeMenu();
 }
 function toggleGroupBy() {
   groupByCol.value     = groupByCol.value === menu.value.colId ? null : menu.value.colId;
   expandedGroups.value = new Set();
+  dirty.value = true;
   closeMenu();
 }
 
@@ -378,15 +417,29 @@ function applyFormato() {
   if (menu.value.formato !== 'FECHA') {
     colPatrones.value = { ...colPatrones.value, [menu.value.colId]: null };
   }
+  dirty.value = true;
 }
 function applyPatron() {
   colPatrones.value = { ...colPatrones.value, [menu.value.colId]: menu.value.patron || null };
+  dirty.value = true;
 }
 </script>
 
 <style scoped>
 .grid-wrap { display: flex; flex-direction: column; gap: var(--e2); position: relative; }
-.grid-meta { font-size: var(--t-xs); color: var(--texto-tenue); }
+.grid-meta { font-size: var(--t-xs); color: var(--texto-tenue); display: flex; align-items: center; gap: var(--e2); flex-wrap: wrap; }
+.btn-guardar-vista {
+  padding: 2px 10px;
+  font-size: var(--t-xs);
+  border: 1px solid var(--accent);
+  border-radius: var(--r1);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background .15s, color .15s;
+}
+.btn-guardar-vista:hover { background: var(--accent); color: #fff; }
 .grid-info { color: var(--texto-tenue); }
 
 .empty {

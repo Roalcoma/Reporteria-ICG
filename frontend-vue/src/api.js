@@ -137,6 +137,7 @@ export const api = {
   tablasIcgCatalogo: () => req('/api/reportes/tablas-icg/catalogo'),
   tablasIcgColumnas: (tabla, codEmpresa) =>
     req(`/api/reportes/tablas-icg/columnas?tabla=${encodeURIComponent(tabla)}&codEmpresa=${codEmpresa ?? ''}`),
+  guardarVista: (id, vista) => req(`/api/reportes/${id}/vista`, { method: 'PUT', body: JSON.stringify(vista) }),
   ejecutar: (id, payload) => post(`/api/reportes/${id}/ejecutar`, payload),
   enviar: (id, payload) => post(`/api/reportes/${id}/enviar`, payload),
 

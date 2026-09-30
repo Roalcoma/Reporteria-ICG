@@ -1,7 +1,14 @@
 /** Versión de la aplicación y registro de cambios. */
-export const APP_VERSION = '0.7.1';
+export const APP_VERSION = '0.7.2';
 
 export const VERSIONES = [
+  {
+    version: '0.7.2',
+    fecha: '2026-09-30',
+    cambios: [
+      'Feature: DataGrid guarda vista por reporte — orden de columnas, agrupación, alias, totales y formatos persisten en localStorage; botón "Guardar vista" aparece al detectar cambios',
+    ],
+  },
   {
     version: '0.7.1',
     fecha: '2026-08-28',
@@ -75,6 +82,7 @@ export const VERSIONES = [
 ];
 
 export const COMMITS = [
+  { version: '0.7.2', mensaje: 'feat: persistir vista de DataGrid (orden/agrupado/formatos) en localStorage' },
   { version: '0.7.0', mensaje: 'feat: editor SQL CodeMirror 6 + módulo Procedimientos (SPs y Vistas)' },
   { version: '0.4.0', mensaje: 'feat: módulo actualización automática desde GitHub Releases' },
   { version: '0.3.0', mensaje: 'feat: módulo auditoría UI + cobertura audit programaciones' },

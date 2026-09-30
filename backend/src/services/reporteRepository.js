@@ -49,6 +49,13 @@ class ReporteRepository {
     const reporte = reporteRows[0];
     if (!reporte) return null;
 
+    // Parsea las preferencias de vista guardadas
+    if (reporte.VistaJson) {
+      try { reporte.Vista = JSON.parse(reporte.VistaJson); } catch { reporte.Vista = null; }
+    } else {
+      reporte.Vista = null;
+    }
+
     // Anida opciones dentro de cada parámetro (para whitelist y listas estáticas).
     const opsByParam = new Map();
     for (const o of opciones) {
@@ -205,6 +212,15 @@ class ReporteRepository {
                  VisiblePorDefecto,EsAdicional,EsAgrupable,AgregacionPie,Orden)
                 VALUES (@id,@cr,@campo,@alias,@fmt,@pat,@vis,@adic,@agrup,@agg,@ord)`);
     }
+  }
+
+  /** Guarda las preferencias de vista del reporte (orden, agrupado, alias, totales, formatos). */
+  async guardarVista(reporteId, vista) {
+    const pool = await this._pool();
+    await pool.request()
+      .input('id',    sql.Int,               reporteId)
+      .input('vista', sql.NVarChar(sql.MAX), vista ? JSON.stringify(vista) : null)
+      .query(`UPDATE rep.Reporte SET VistaJson=@vista WHERE ReporteId=@id`);
   }
 
   /** Soft-delete del reporte. */

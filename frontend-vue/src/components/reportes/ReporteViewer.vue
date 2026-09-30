@@ -105,13 +105,18 @@
         <!-- MASTER_DETAIL -->
         <template v-if="def.reporte.Tipo === 'MASTER_DETAIL'">
           <h3 class="resultado-subtitulo">Cabecera</h3>
-          <DataGrid :rows="resultado.cabecera || []" :columnas="resultado.columnas" />
+          <DataGrid :rows="resultado.cabecera || []" :columnas="resultado.columnas"
+            :reporteId="reporte.ReporteId" :vista="def.reporte.Vista"
+            @save-vista="guardarVista" />
           <h3 class="resultado-subtitulo">Detalle</h3>
-          <DataGrid :rows="resultado.detalle || []" :columnas="resultado.columnas" />
+          <DataGrid :rows="resultado.detalle || []" :columnas="resultado.columnas"
+            :reporteId="reporte.ReporteId + '-detalle'" />
         </template>
 
         <!-- FLAT -->
-        <DataGrid v-else :rows="resultado.rows || []" :columnas="resultado.columnas" />
+        <DataGrid v-else :rows="resultado.rows || []" :columnas="resultado.columnas"
+          :reporteId="reporte.ReporteId" :vista="def.reporte.Vista"
+          @save-vista="guardarVista" />
       </section>
     </template>
   </div>
@@ -229,6 +234,14 @@ async function exportar(formato) {
     });
   } catch (e) { toast.error(e.message); }
   finally { exportandoFormato.value = null; }
+}
+
+async function guardarVista(vista) {
+  try {
+    await api.guardarVista(props.reporte.ReporteId, vista);
+    if (def.value?.reporte) def.value.reporte.Vista = vista;
+    toast.ok('Vista guardada');
+  } catch (e) { toast.error(e.message); }
 }
 
 async function enviarCorreo() {
