@@ -77,29 +77,27 @@
 
         <!-- Enviar correo -->
         <div v-if="mailAbierto" class="mail-box panel">
-          <template>
-            <div class="campo">
-              <label>Destinatarios</label>
-              <input v-model="mailDest" placeholder="separados por ;" />
-            </div>
-            <div class="campo">
-              <label>Asunto</label>
-              <input v-model="mailAsunto" />
-            </div>
-            <div class="campo">
-              <label>Formato</label>
-              <select v-model="mailFormato">
-                <option v-for="f in FORMATOS" :key="f" :value="f">{{ f }}</option>
-              </select>
-            </div>
-            <div class="mail-acciones">
-              <button class="btn btn-primary" :disabled="!mailDest || mailEnviando" @click="enviarCorreo">
-                <span v-if="mailEnviando" class="spinner" />
-                {{ mailEnviando ? 'Enviando…' : 'Enviar' }}
-              </button>
-              <button class="btn btn-ghost" @click="mailAbierto = false">Cancelar</button>
-            </div>
-          </template>
+          <div class="campo">
+            <label for="mail-dest">Destinatarios</label>
+            <input id="mail-dest" v-model="mailDest" placeholder="separados por ;" />
+          </div>
+          <div class="campo">
+            <label for="mail-asunto">Asunto</label>
+            <input id="mail-asunto" v-model="mailAsunto" />
+          </div>
+          <div class="campo">
+            <label for="mail-formato">Formato</label>
+            <select id="mail-formato" v-model="mailFormato">
+              <option v-for="f in FORMATOS" :key="f" :value="f">{{ f }}</option>
+            </select>
+          </div>
+          <div class="mail-acciones">
+            <button class="btn btn-primary" :disabled="!mailDest || mailEnviando" @click="enviarCorreo">
+              <span v-if="mailEnviando" class="spinner" />
+              {{ mailEnviando ? 'Enviando…' : 'Enviar' }}
+            </button>
+            <button class="btn btn-ghost" @click="mailAbierto = false">Cancelar</button>
+          </div>
         </div>
 
         <!-- MASTER_DETAIL -->

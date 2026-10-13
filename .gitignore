@@ -38,3 +38,7 @@ desktop.ini
 # --- Exportaciones generadas en tiempo de ejecución --------------------------
 backend/exports/
 backend/tmp/
+
+# --- Paquetes de release y scripts locales de diagnóstico ------------------
+*.zip
+backend/test-conn.js

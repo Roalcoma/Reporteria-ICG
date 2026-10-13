@@ -171,9 +171,9 @@
 import { ref, computed, onMounted, h } from 'vue';
 import { api } from '@/api.js';
 import SqlEditor from '@/components/ui/SqlEditor.vue';
-import { useToastStore } from '@/stores/toasts.js';
+import { useToast } from '@/composables/useToast.js';
 
-const toast = useToastStore();
+const toast = useToast();
 
 // Íconos inline mínimos
 const IconSP   = { render: () => h('svg', { viewBox:'0 0 20 20', fill:'none', stroke:'currentColor', 'stroke-width':'1.5' }, [h('path', { d:'M4 5h12M4 9h8M4 13h10M16 12v6m-3-3 3 3 3-3' })]) };
@@ -286,9 +286,9 @@ async function autorizar() {
   try {
     await api.autorizarSp({ esquema: seleccionado.value.Esquema, nombre: seleccionado.value.Nombre });
     await cargarAutorizados();
-    toast.agregar({ tipo: 'exito', mensaje: `SP ${seleccionado.value.Nombre} autorizado para reportes` });
+    toast.ok(`SP ${seleccionado.value.Nombre} autorizado para reportes`);
   } catch (e) {
-    toast.agregar({ tipo: 'error', mensaje: e.message || 'Error al autorizar' });
+    toast.error(e.message || 'Error al autorizar');
   } finally {
     autorizando.value = false;
   }
@@ -301,11 +301,11 @@ async function guardar() {
   try {
     await api.empresaAlterar(definicion.value);
     guardadoOk.value = true;
-    toast.agregar({ tipo: 'exito', mensaje: 'Definición actualizada correctamente' });
+    toast.ok('Definición actualizada correctamente');
     setTimeout(() => { guardadoOk.value = false; }, 4000);
   } catch (e) {
     errorGuardar.value = e.message || 'Error al guardar';
-    toast.agregar({ tipo: 'error', mensaje: errorGuardar.value });
+    toast.error(errorGuardar.value);
   } finally {
     guardando.value = false;
   }
@@ -328,7 +328,7 @@ async function guardar() {
   gap: 0;
   padding: 0 var(--e3);
   border-bottom: 1px solid var(--borde);
-  background: var(--superficie);
+  background: var(--panel);
   flex-shrink: 0;
 }
 
@@ -376,7 +376,7 @@ async function guardar() {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--superficie);
+  background: var(--panel);
 }
 
 /* Buscador */
@@ -395,7 +395,7 @@ async function guardar() {
   gap: 6px;
   background: var(--fondo);
   border: 1px solid var(--borde);
-  border-radius: var(--radio);
+  border-radius: var(--r2);
   padding: 0 8px;
   transition: border-color var(--transicion);
 }
@@ -432,7 +432,7 @@ async function guardar() {
   width: 32px;
   height: 32px;
   border: 1px solid var(--borde);
-  border-radius: var(--radio);
+  border-radius: var(--r2);
   background: var(--fondo);
   color: var(--texto-suave);
   cursor: pointer;
@@ -482,7 +482,7 @@ async function guardar() {
   text-align: center;
 }
 .proc-empty svg { width: 36px; height: 36px; opacity: .35; }
-.proc-empty--warn { color: var(--advertencia, #c9860a); }
+.proc-empty--warn { color: var(--aviso); }
 .proc-empty--warn svg { opacity: .6; }
 
 /* Items */
@@ -501,7 +501,7 @@ async function guardar() {
   cursor: pointer;
   transition: background var(--transicion);
 }
-.proc-item:hover { background: var(--fondo-hover); }
+.proc-item:hover { background: var(--panel-alt); }
 .proc-item.activo { background: var(--simple-suave); }
 
 .proc-item-badge {
@@ -514,18 +514,8 @@ async function guardar() {
   border-radius: 4px;
   line-height: 1.4;
 }
-.badge-sp { background: #dbeafe; color: #1d4ed8; }
-.badge-v  { background: #d1fae5; color: #065f46; }
-
-/* dark mode badges */
-@media (prefers-color-scheme: dark) {
-  .badge-sp { background: #1e3a5f; color: #93c5fd; }
-  .badge-v  { background: #064e3b; color: #6ee7b7; }
-}
-:root[data-theme="dark"] .badge-sp { background: #1e3a5f; color: #93c5fd; }
-:root[data-theme="dark"] .badge-v  { background: #064e3b; color: #6ee7b7; }
-:root[data-theme="light"] .badge-sp { background: #dbeafe; color: #1d4ed8; }
-:root[data-theme="light"] .badge-v  { background: #d1fae5; color: #065f46; }
+.badge-sp { background: var(--dashboard-suave); color: var(--dashboard); }
+.badge-v  { background: var(--simple-suave);    color: var(--simple); }
 
 .proc-item-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 
@@ -581,7 +571,7 @@ async function guardar() {
   justify-content: space-between;
   padding: 10px 16px;
   border-bottom: 1px solid var(--borde);
-  background: var(--superficie);
+  background: var(--panel);
   flex-shrink: 0;
   gap: var(--e2);
 }

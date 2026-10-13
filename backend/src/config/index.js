@@ -4,19 +4,30 @@ require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 
 const num = (v, def) => (v === undefined ? def : Number(v));
 
+function resolverSessionSecret() {
+  const s = process.env.SESSION_SECRET;
+  if (s && s !== 'cambia-esto' && s !== 'dev-secret') return s;
+  // Uno aleatorio es seguro pero invalida las sesiones en cada reinicio.
+  console.warn('[config] SESSION_SECRET no configurado en .env: se usa uno aleatorio; las sesiones se perderán al reiniciar.');
+  return require('crypto').randomBytes(32).toString('hex');
+}
+
 /** Opciones comunes de node-mssql para SQL Server on-premise (ICG). */
 const commonOptions = {
   options: {
     encrypt: false,               // instancias ICG locales normalmente sin TLS
     trustServerCertificate: true,
-    enableArithAbort: true
+    enableArithAbort: true,
+    // ICG guarda hora local sin zona: con useUTC (default) las fechas llegaban
+    // corridas 3-4 h y el scheduler comparaba UTC contra SYSDATETIME() local.
+    useUTC: false
   },
   requestTimeout: num(process.env.QUERY_TIMEOUT_MS, 120000)
 };
 
 module.exports = {
   port: num(process.env.PORT, 3010),
-  sessionSecret: process.env.SESSION_SECRET || 'dev-secret',
+  sessionSecret: resolverSessionSecret(),
   cryptoKeyHex: process.env.APP_CRYPTO_KEY || '',
 
   // Pool FIJO -> BD de configuracion propia

@@ -123,12 +123,14 @@ Consulta GitHub Releases para detectar nuevas versiones. Los administradores pue
 
 ## Roles y permisos
 
-| Permiso | Descripción |
-|---------|-------------|
-| `PuedeEjecutar` | Ejecutar reportes existentes |
-| `PuedeEditar` | Crear y modificar reportes y carpetas |
-| `PuedeCrear` | Administrar procedimientos y configuración avanzada |
-| `PuedeAdmin` | Gestión de usuarios y actualización del sistema |
+Los permisos viven en `rep.AppRol`. Roles de fábrica: **Lectura**, **Creador/Editor** y **Administrador**. Un usuario de ICG sin registrar entra como Lectura; los logins de `ADMIN_LOGINS` (`.env`) siempre son Administrador.
+
+| Permiso | Habilita |
+|---------|----------|
+| `PuedeEjecutar` | Ejecutar, exportar y enviar por correo reportes existentes |
+| `PuedeCrear` / `PuedeEditar` | Crear y editar reportes, carpetas y guardar la vista de un reporte. `PuedeCrear` además autoriza SP y aplica `ALTER` en Procedimientos |
+| `PuedeProgramar` | Programaciones, Auditoría y acceso al módulo Procedimientos |
+| `PuedeAdministrar` | Branding, Usuarios, Perfiles, Portabilidad y Actualización |
 
 ---
 
@@ -157,7 +159,7 @@ Reporteria-ICG/
 
 ## Versión actual
 
-`0.7.0` — Editor SQL CodeMirror 6 + Módulo Procedimientos + fix AppModal
+`0.7.3` — Correcciones de fechas, scheduler, correo y Procedimientos. La versión se declara en `backend/package.json` (la usa el actualizador) y `frontend-vue/package.json`; el tag del release debe ser `v<versión>`.
 
 Historial completo en [`frontend-vue/src/changelog.js`](frontend-vue/src/changelog.js).
 
