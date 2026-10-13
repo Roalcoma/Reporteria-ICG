@@ -16,8 +16,6 @@ class BaseExecutor {
     this.destino = contexto.destino;
     this.definiciones = contexto.definiciones; // rep.ReporteParametro (+ .opciones)
     this.consultas = contexto.consultas;       // rep.ReporteConsulta
-    // Lista blanca de SPs autorizados (Set 'esquema.nombre'), para la guarda.
-    this.opciones = { procedimientosPermitidos: contexto.procedimientosPermitidos };
   }
   _pool() { return cm.getDataPool(this.destino); }
   _sql(rol) {
@@ -31,8 +29,7 @@ class SimpleExecutor extends BaseExecutor {
   async execute(valores) {
     const pool = await this._pool();
     const req = pool.request();
-    const finalSql = engine.build(this._sql('FLAT').SqlText, this.definiciones, valores, req,
-      {}, this.opciones);
+    const finalSql = engine.build(this._sql('FLAT').SqlText, this.definiciones, valores, req);
     const rs = await req.query(finalSql);
     return { rows: rs.recordset, rowCount: rs.recordset.length };
   }
@@ -43,13 +40,12 @@ class MasterDetailExecutor extends BaseExecutor {
     const pool = await this._pool();
 
     const reqCab = pool.request();
-    const sqlCab = engine.build(this._sql('CABECERA').SqlText, this.definiciones, valores, reqCab,
-      {}, this.opciones);
+    const sqlCab = engine.build(this._sql('CABECERA').SqlText, this.definiciones, valores, reqCab);
     const cabecera = (await reqCab.query(sqlCab)).recordset;
 
     const det = this._sql('DETALLE');
     const reqDet = pool.request();
-    const sqlDet = engine.build(det.SqlText, this.definiciones, valores, reqDet, {}, this.opciones);
+    const sqlDet = engine.build(det.SqlText, this.definiciones, valores, reqDet);
     const detalle = (await reqDet.query(sqlDet)).recordset;
 
     return {
@@ -65,8 +61,7 @@ class DashboardExecutor extends BaseExecutor {
   async execute(valores) {
     const pool = await this._pool();
     const req = pool.request();
-    const finalSql = engine.build(this._sql('BASE').SqlText, this.definiciones, valores, req,
-      {}, this.opciones);
+    const finalSql = engine.build(this._sql('BASE').SqlText, this.definiciones, valores, req);
     const rs = await req.query(finalSql);
     // El dataset crudo se envia al frontend; alli se arman pivots/graficos.
     return { rows: rs.recordset, rowCount: rs.recordset.length };

@@ -5,7 +5,6 @@ const { authService } = require('./authService');
 const { createExecutor } = require('../engine/reportExecutor');
 const engine = require('../engine/queryTemplateEngine');
 const { validarSqlReporte } = require('../engine/sqlGuard');
-const procedimientos = require('./procedimientoService');
 
 /**
  * Orquesta la ejecución de un reporte: valida el permiso sobre la empresa,
@@ -35,8 +34,7 @@ class ReporteService {
       sessionUser.codUsuario, reporte.Area, seleccion.codEmpresa, seleccion.ejercicio);
 
     const contexto = { destino: { servidor: emp.servidor, baseDatos: emp.baseDatos },
-      definiciones, consultas,
-      procedimientosPermitidos: await procedimientos.getPermitidos() };
+      definiciones, consultas };
     const executor = createExecutor(reporte, contexto);
 
     const t0 = Date.now();
@@ -82,8 +80,7 @@ class ReporteService {
     const pool = await cm.getDataPool({ servidor: emp.servidor, baseDatos: emp.baseDatos });
     const req = pool.request();
     // Misma guarda que al ejecutar: el modo diseño no es una puerta trasera.
-    const finalSql = engine.build(sqlText, definiciones, valores, req, {},
-      { procedimientosPermitidos: await procedimientos.getPermitidos() });
+    const finalSql = engine.build(sqlText, definiciones, valores, req);
 
     const rs = await req.query(finalSql);
     const meta = rs.recordset?.columns || {};
@@ -125,9 +122,8 @@ class ReporteService {
       sessionUser.codUsuario, def.reporte.Area, seleccion.codEmpresa, seleccion.ejercicio);
 
     // El SQL que puebla la lista también es solo lectura: pasa por la misma guarda
-    // (admite SP autorizado, útil para listas que vienen de un procedimiento).
-    validarSqlReporte(p.SqlOrigen, `El origen del parámetro ${p.Nombre}`,
-      { procedimientosPermitidos: await procedimientos.getPermitidos() });
+    // (admite EXEC de un SP, útil para listas que vienen de un procedimiento).
+    validarSqlReporte(p.SqlOrigen, `El origen del parámetro ${p.Nombre}`);
 
     const pool = await cm.getDataPool({ servidor: emp.servidor, baseDatos: emp.baseDatos });
     const { recordset } = await pool.request().query(p.SqlOrigen);

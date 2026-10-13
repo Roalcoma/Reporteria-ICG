@@ -18,15 +18,14 @@ class QueryTemplateEngine {
    * @param {Object} valores  { NOMBRE: valorUsuario }
    * @param {import('mssql').Request} request  request del pool destino (se muta)
    * @param {Object} [extra]  parametros del sistema ya enlazados (ej. __vinculo)
-   * @param {{procedimientosPermitidos?:Set<string>}} [opciones]
    * @returns {string} SQL final con @parametros
    *
-   * Si la plantilla es una llamada a procedimiento autorizado
-   * (`EXEC sp @p = {PARAM}`), el reemplazo produce `EXEC sp @p = @PARAM`, de modo
-   * que los valores tambien viajan enlazados, nunca concatenados.
+   * Si la plantilla es una llamada a procedimiento (`EXEC sp @p = {PARAM}`), el
+   * reemplazo produce `EXEC sp @p = @PARAM`, de modo que los valores tambien
+   * viajan enlazados, nunca concatenados.
    */
-  build(sqlTemplate, definiciones, valores, request, extra = {}, opciones = {}) {
-    this._assertReadOnly(sqlTemplate, opciones);
+  build(sqlTemplate, definiciones, valores, request, extra = {}) {
+    validarSqlReporte(sqlTemplate, 'El reporte');
     const defMap = new Map(definiciones.map(d => [d.Nombre, d]));
     const registrados = new Set();
 
@@ -73,14 +72,6 @@ class QueryTemplateEngine {
       throw new Error(`Identificador no permitido para ${def.Nombre}: ${raw}`);
     }
     return `[${String(raw).replace(/]/g, ']]')}]`; // QUOTENAME manual
-  }
-
-  /**
-   * Delega en sqlGuard: solo lectura, una sentencia, sin DDL/DML ni SP del
-   * sistema; admite EXEC unicamente de procedimientos en la lista blanca.
-   */
-  _assertReadOnly(sqlTemplate, opciones) {
-    validarSqlReporte(sqlTemplate, 'El reporte', opciones);
   }
 }
 

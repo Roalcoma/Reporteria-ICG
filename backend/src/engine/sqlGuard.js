@@ -109,28 +109,22 @@ const EXEC_RE = new RegExp(
   '\\s*;?\\s*$', 'i');
 
 /**
- * Reconoce una llamada a procedimiento y valida que esté autorizado.
+ * Reconoce una llamada a procedimiento. Se admite cualquier SP de usuario (sin
+ * lista blanca); los del sistema nunca. Lo que el SP haga por dentro depende de
+ * los permisos del login SQL de datos.
  * @param {string} sqlNormalizado
- * @param {Set<string>} permitidos  claves 'esquema.nombre' en minúsculas
  * @returns {{esEjecucionSp:boolean, esquema?:string, nombre?:string}}
  */
-function analizarEjecucionSp(sqlNormalizado, permitidos) {
+function analizarEjecucionSp(sqlNormalizado) {
   const m = sqlNormalizado.match(EXEC_RE);
   if (!m) return { esEjecucionSp: false };
   const esquema = (m[1] || 'dbo').toLowerCase();
   const nombre = m[2].toLowerCase();
-  // Nunca se permiten procedimientos del sistema, ni aunque estén en la lista.
   for (const pre of PREFIJOS_PROHIBIDOS) {
     if (nombre.startsWith(pre)) {
       throw new SqlGuardError(
         `No se permite ejecutar procedimientos del sistema ("${nombre}").`, 'SP_SISTEMA');
     }
-  }
-  if (!permitidos || !permitidos.has(`${esquema}.${nombre}`)) {
-    throw new SqlGuardError(
-      `El procedimiento "${esquema}.${nombre}" no está autorizado. ` +
-      `Un administrador debe registrarlo en la lista blanca de procedimientos.`,
-      'SP_NO_AUTORIZADO');
   }
   return { esEjecucionSp: true, esquema, nombre };
 }
@@ -139,10 +133,9 @@ function analizarEjecucionSp(sqlNormalizado, permitidos) {
  * Valida el SQL de un reporte. Lanza SqlGuardError si no es seguro.
  * @param {string} sqlText
  * @param {string} [contexto] nombre para el mensaje de error (ej. 'consulta CABECERA')
- * @param {{procedimientosPermitidos?:Set<string>}} [opciones]
  * @returns {{ok:true, esEjecucionSp?:boolean, esquema?:string, nombre?:string}}
  */
-function validarSqlReporte(sqlText, contexto = 'La consulta', opciones = {}) {
+function validarSqlReporte(sqlText, contexto = 'La consulta') {
   if (!sqlText || !sqlText.trim()) {
     throw new SqlGuardError(`${contexto} está vacía.`, 'VACIA');
   }
@@ -150,10 +143,10 @@ function validarSqlReporte(sqlText, contexto = 'La consulta', opciones = {}) {
   const limpio = normalizar(sqlText);
   const upper = limpio.toUpperCase();
 
-  // Vía alterna: llamada a un procedimiento almacenado AUTORIZADO.
+  // Vía alterna: llamada a un procedimiento almacenado.
   // Se resuelve antes que el resto porque EXEC está en la lista negra general.
   if (/^\s*EXEC(UTE)?\s/i.test(limpio)) {
-    const sp = analizarEjecucionSp(limpio, opciones.procedimientosPermitidos);
+    const sp = analizarEjecucionSp(limpio);
     if (sp.esEjecucionSp) return { ok: true, ...sp };
     throw new SqlGuardError(
       `${contexto} usa una sintaxis de EXEC no admitida. Use: ` +
@@ -206,8 +199,8 @@ function validarSqlReporte(sqlText, contexto = 'La consulta', opciones = {}) {
 }
 
 /** Valida sin lanzar. @returns {{valida:boolean, error?:string, motivo?:string}} */
-function revisarSql(sqlText, contexto, opciones) {
-  try { validarSqlReporte(sqlText, contexto, opciones); return { valida: true }; }
+function revisarSql(sqlText, contexto) {
+  try { validarSqlReporte(sqlText, contexto); return { valida: true }; }
   catch (e) { return { valida: false, error: e.message, motivo: e.motivo }; }
 }
 

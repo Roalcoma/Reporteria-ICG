@@ -4,7 +4,6 @@ const cm = require('../db/connectionManager');
 const catalogo = require('./catalogoService');
 const { authService } = require('./authService');
 const { validarSqlReporte } = require('../engine/sqlGuard');
-const procedimientos = require('./procedimientoService');
 
 const IDENT = /^[A-Z][A-Z0-9_]*$/;   // claves lógicas en mayúsculas
 
@@ -68,8 +67,7 @@ class CatalogoAdminService {
 
   /** El SQL de un origen pasa la misma guarda que los reportes. */
   async _validarSql(sqlBase) {
-    await validarSqlReporte(sqlBase, 'El SQL del origen',
-      { procedimientosPermitidos: await procedimientos.getPermitidos() });
+    validarSqlReporte(sqlBase, 'El SQL del origen');
   }
 
   /**

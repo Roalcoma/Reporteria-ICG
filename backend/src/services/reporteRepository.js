@@ -2,7 +2,6 @@
 const sql = require('mssql');
 const cm = require('../db/connectionManager');
 const { validarSqlReporte } = require('../engine/sqlGuard');
-const procedimientos = require('./procedimientoService');
 
 /**
  * Acceso a las definiciones de reportes en la BD de configuración (esquema rep).
@@ -77,13 +76,12 @@ class ReporteRepository {
    * en la base un SQL que la guarda rechazaría al ejecutar.
    */
   async _validarDefinicion(def) {
-    const opciones = { procedimientosPermitidos: await procedimientos.getPermitidos() };
     for (const c of def.consultas || []) {
-      validarSqlReporte(c.SqlText, `La consulta ${c.Rol}`, opciones);
+      validarSqlReporte(c.SqlText, `La consulta ${c.Rol}`);
     }
     for (const p of def.parametros || []) {
       if (p.ControlUI === 'LISTA_SQL' && p.SqlOrigen) {
-        validarSqlReporte(p.SqlOrigen, `El origen del parámetro ${p.Nombre}`, opciones);
+        validarSqlReporte(p.SqlOrigen, `El origen del parámetro ${p.Nombre}`);
       }
     }
   }

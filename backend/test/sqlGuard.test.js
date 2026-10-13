@@ -83,49 +83,39 @@ rechaza('', 'SQL vacío');
 rechaza('   ', 'solo espacios');
 rechaza('EXPLAIN SELECT 1', 'no empieza por SELECT/WITH');
 
-console.log('\nProcedimientos almacenados: lista blanca');
-// Solo estos dos están autorizados en la prueba.
-const PERMITIDOS = new Set(['dbo.rep_ventasdiarias', 'rep.sp_no_valido_por_prefijo']);
-const conSp = (sqlText) => revisarSql(sqlText, 'La consulta',
-  { procedimientosPermitidos: PERMITIDOS });
+console.log('\nProcedimientos almacenados (sin lista blanca)');
+const conSp = (sqlText) => revisarSql(sqlText, 'La consulta');
 
-test('SP autorizado se acepta', () => {
+test('cualquier SP de usuario se acepta', () => {
   assert.strictEqual(conSp('EXEC dbo.REP_VENTASDIARIAS').valida, true);
+  assert.strictEqual(conSp('EXEC RIP.PROC_REP_COMISIONES_DETALLADAS').valida, true);
 });
-test('SP autorizado sin esquema (asume dbo)', () => {
+test('SP sin esquema (asume dbo)', () => {
   assert.strictEqual(conSp('EXEC REP_VENTASDIARIAS').valida, true);
 });
-test('SP autorizado con parámetros del reporte', () => {
+test('SP con parámetros del reporte', () => {
   const r = conSp('EXEC dbo.REP_VENTASDIARIAS @Desde = {FECHA_INI}, @Hasta = {FECHA_FIN}');
   assert.strictEqual(r.valida, true, r.error);
 });
 test('EXECUTE (forma larga) también se acepta', () => {
   assert.strictEqual(conSp('EXECUTE dbo.REP_VENTASDIARIAS').valida, true);
 });
-test('SP NO autorizado se rechaza', () => {
-  const r = conSp('EXEC dbo.BORRAR_TODO');
-  assert.strictEqual(r.valida, false);
-  assert.strictEqual(r.motivo, 'SP_NO_AUTORIZADO');
-});
-test('sin lista blanca, ningún EXEC pasa', () => {
-  assert.strictEqual(revisarSql('EXEC dbo.REP_VENTASDIARIAS').valida, false);
-});
-test('SP del sistema se rechaza aunque esté en la lista', () => {
+test('SP del sistema (sp_) se rechaza', () => {
   const r = conSp('EXEC rep.sp_no_valido_por_prefijo');
   assert.strictEqual(r.valida, false);
   assert.strictEqual(r.motivo, 'SP_SISTEMA');
 });
-test('no se puede encadenar tras un SP autorizado', () => {
+test('no se puede encadenar tras un SP', () => {
   assert.strictEqual(conSp('EXEC dbo.REP_VENTASDIARIAS; DROP TABLE T').valida, false);
 });
 test('EXEC dinámico con cadena se rechaza', () => {
   assert.strictEqual(conSp("EXEC('DROP TABLE T')").valida, false);
 });
-test('xp_cmdshell sigue rechazado con lista blanca activa', () => {
+test('xp_cmdshell sigue rechazado', () => {
   assert.strictEqual(conSp("EXEC xp_cmdshell 'dir'").valida, false);
 });
-test('SELECT normal sigue funcionando con lista blanca activa', () => {
-  assert.strictEqual(conSp('SELECT * FROM ARTICULOS').valida, true);
+test('sp_executesql (SQL dinámico) sigue rechazado', () => {
+  assert.strictEqual(conSp("EXEC sp_executesql @s = ''").valida, false);
 });
 
 console.log('\nNormalizador');

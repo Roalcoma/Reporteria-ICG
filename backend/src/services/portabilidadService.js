@@ -2,7 +2,6 @@
 const sql = require('mssql');
 const cm = require('../db/connectionManager');
 const repo = require('./reporteRepository');
-const procedimientos = require('./procedimientoService');
 const { revisarSql } = require('../engine/sqlGuard');
 
 /**
@@ -15,11 +14,9 @@ const { revisarSql } = require('../engine/sqlGuard');
  *
  * ANALIZAR ANTES DE IMPORTAR. `analizar()` revisa el archivo sin guardar nada y
  * separa dos niveles:
- *   ERROR  (bloquea)    formato desconocido, sin consultas, SQL que no pasa la
- *                       guarda, o —el caso típico al migrar— un procedimiento
- *                       almacenado que el cliente de origen tenía autorizado y
- *                       este no. Se resuelve autorizándolo en la lista blanca,
- *                       NUNCA relajando la validación.
+ *   ERROR  (bloquea)    formato desconocido, sin consultas o SQL que no pasa la
+ *                       guarda (se resuelve corrigiendo el SQL, nunca relajando
+ *                       la validación).
  *   AVISO  (no bloquea) ya existe un reporte activo con ese nombre.
  *
  * El SQL importado pasa por la MISMA guarda que el escrito a mano, de modo que
@@ -59,9 +56,7 @@ class PortabilidadService {
 
   /**
    * Revisa un bundle SIN guardarlo: resume su contenido y detecta problemas
-   * antes de importar. Es la comprobación clave al migrar entre clientes,
-   * donde un reporte puede traer SQL que aquí no pasa la guarda (por ejemplo,
-   * un procedimiento almacenado que en esta instalación no está autorizado).
+   * antes de importar: un archivo manipulado no puede colar SQL que la guarda rechaza.
    */
   async analizar(bundle) {
     if (!bundle || typeof bundle !== 'object') {
@@ -74,19 +69,18 @@ class PortabilidadService {
       e.status = 400; throw e;
     }
 
-    const opciones = { procedimientosPermitidos: await procedimientos.getPermitidos() };
     const problemas = [];
 
     if (!bundle.reporte?.Nombre) problemas.push({ nivel: 'ERROR', mensaje: 'El reporte no tiene nombre.' });
     if (!(bundle.consultas || []).length) problemas.push({ nivel: 'ERROR', mensaje: 'No trae ninguna consulta.' });
 
     for (const c of bundle.consultas || []) {
-      const r = revisarSql(c.SqlText, `La consulta ${c.Rol}`, opciones);
+      const r = revisarSql(c.SqlText, `La consulta ${c.Rol}`);
       if (!r.valida) problemas.push({ nivel: 'ERROR', mensaje: r.error, motivo: r.motivo, rol: c.Rol });
     }
     for (const p of bundle.parametros || []) {
       if (p.ControlUI === 'LISTA_SQL' && p.SqlOrigen) {
-        const r = revisarSql(p.SqlOrigen, `El origen del parámetro ${p.Nombre}`, opciones);
+        const r = revisarSql(p.SqlOrigen, `El origen del parámetro ${p.Nombre}`);
         if (!r.valida) problemas.push({ nivel: 'ERROR', mensaje: r.error, motivo: r.motivo });
       }
     }

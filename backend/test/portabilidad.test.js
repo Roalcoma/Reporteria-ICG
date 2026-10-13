@@ -6,7 +6,6 @@
  */
 const assert = require('assert');
 const portabilidad = require('../src/services/portabilidadService');
-const procedimientos = require('../src/services/procedimientoService');
 const cm = require('../src/db/connectionManager');
 
 let ok = 0, fallos = 0;
@@ -16,8 +15,7 @@ const testAsync = async (nombre, fn) => {
 };
 
 /** Simula la BD: la consulta de nombres duplicados devuelve `duplicados`. */
-function simular({ spsPermitidos = [], duplicados = false } = {}) {
-  procedimientos.getPermitidos = async () => new Set(spsPermitidos);
+function simular({ duplicados = false } = {}) {
   cm.getConfigPool = async () => ({
     request: () => ({
       input() { return this; },
@@ -67,23 +65,20 @@ const bundleBase = (extra = {}) => ({
     assert.ok(r.problemas.some(p => p.nivel === 'ERROR'), 'debe reportar un error');
   });
 
-  await testAsync('SP no autorizado en ESTA instalación bloquea la importación', async () => {
-    // El cliente de origen tenía el SP autorizado; aquí no.
-    simular({ spsPermitidos: [] });
-    const r = await portabilidad.analizar(bundleBase({
-      consultas: [{ Rol: 'FLAT', SqlText: 'EXEC dbo.REP_VENTASDIARIAS @D = {FECHA}' }]
-    }));
-    assert.strictEqual(r.valido, false);
-    assert.ok(r.problemas.some(p => p.motivo === 'SP_NO_AUTORIZADO'),
-      'debe indicar que el procedimiento no está autorizado');
-  });
-
-  await testAsync('el mismo SP autorizado aquí sí permite importar', async () => {
-    simular({ spsPermitidos: ['dbo.rep_ventasdiarias'] });
+  await testAsync('un reporte basado en SP se importa sin registrarlo antes', async () => {
+    simular();
     const r = await portabilidad.analizar(bundleBase({
       consultas: [{ Rol: 'FLAT', SqlText: 'EXEC dbo.REP_VENTASDIARIAS @D = {FECHA}' }]
     }));
     assert.strictEqual(r.valido, true, JSON.stringify(r.problemas));
+  });
+
+  await testAsync('un SP del sistema en el archivo bloquea la importación', async () => {
+    simular();
+    const r = await portabilidad.analizar(bundleBase({
+      consultas: [{ Rol: 'FLAT', SqlText: "EXEC xp_cmdshell 'dir'" }]
+    }));
+    assert.strictEqual(r.valido, false);
   });
 
   await testAsync('nombre repetido es AVISO, no impide importar', async () => {
