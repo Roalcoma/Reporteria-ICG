@@ -21,7 +21,7 @@
  * así que dos workers nunca procesan el mismo. Cada uno necesita su propio
  * WORKER_ID en el .env para que la bitácora distinga quién hizo qué.
  */
-require('dotenv').config();
+require('./config'); // carga backend/.env con ruta fija, sin depender del cwd
 const cron = require('node-cron');
 const cm = require('./db/connectionManager');
 const scheduler = require('./services/schedulerService');

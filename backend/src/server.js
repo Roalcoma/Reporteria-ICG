@@ -1,5 +1,5 @@
 'use strict';
-require('dotenv').config();
+const cfg        = require('./config'); // primero: carga backend/.env con ruta fija, sin depender del cwd
 const fs         = require('fs');
 const path       = require('path');
 const express    = require('express');
@@ -7,7 +7,6 @@ const session    = require('express-session');
 const cors       = require('cors');
 const rateLimit  = require('express-rate-limit');
 const MSSQLStore = require('connect-mssql-v2');
-const cfg        = require('./config');
 const cm         = require('./db/connectionManager');
 const { migrarAlArrancar, estadoMigraciones } = require('./db/migraciones');
 const { authService, AuthError } = require('./services/authService');
