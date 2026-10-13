@@ -5,6 +5,7 @@ const reporteService = require('./reporteService');
 const exportService = require('./exportService');
 const brandingService = require('./brandingService');
 const mailService = require('./mailService');
+const { resolverPeriodosFecha } = require('./cronUtil');
 
 /**
  * Pipeline de un job programado:  ejecutar -> exportar -> enviar -> historial.
@@ -38,7 +39,9 @@ class JobRunner {
       throw new Error('La programación no tiene un usuario ICG asociado (CreadoPor)');
     }
 
-    const parametros = prog.ParametrosJson ? JSON.parse(prog.ParametrosJson) : {};
+    const parametros = resolverPeriodosFecha(
+      prog.ParametrosJson ? JSON.parse(prog.ParametrosJson) : {}
+    );
     const seleccion = {
       codEmpresa: prog.CodigoICG ?? undefined,
       ejercicio: prog.Ejercicio ?? undefined

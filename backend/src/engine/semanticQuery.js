@@ -42,6 +42,18 @@ const PERIODOS = {
     lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7));   // semana ISO: empieza el lunes
     return [lunes, d];
   },
+  SEMANA_PASADA: () => {
+    const d = hoy(); const lunes = new Date(d);
+    lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 7);
+    const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+    return [lunes, domingo];
+  },
+  SEMANA_PASADA_LUN_SAB: () => {
+    const d = hoy(); const lunes = new Date(d);
+    lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 7);
+    const sabado = new Date(lunes); sabado.setDate(lunes.getDate() + 5);
+    return [lunes, sabado];
+  },
   MES_ACTUAL: () => {
     const d = hoy();
     return [new Date(d.getFullYear(), d.getMonth(), 1), d];
