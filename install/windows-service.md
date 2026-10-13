@@ -1,51 +1,57 @@
-# Despliegue como servicio de Windows (sin licencias, sin Docker)
+# Despliegue en Windows (servicios NSSM)
 
-Se ejecutan **dos servicios** Node: la **API** y el **worker** del scheduler.
-Se usa **NSSM** (the Non-Sucking Service Manager, gratuito) para registrarlos.
+Corren **dos servicios** Node: la **API** (que también sirve la interfaz web) y el
+**worker** de envíos programados. En producción **no se usa Vite**: todo queda en
+un solo puerto (`PORT`, por defecto 3010).
 
 ## 1. Requisitos
-- Node.js LTS (gratuito) instalado en el servidor.
-- SQL Server ya presente (la instalacion de ICG). **SQL Express basta** para
-  `ICG_Reporteria_Config`; agregar una BD **no suma licencia**.
-- NSSM: https://nssm.cc/download (copiar `nssm.exe` a `C:\nssm\`).
+- Node.js LTS instalado para todos los usuarios (`C:\Program Files\nodejs`).
+- SQL Server (la instalación de ICG). SQL Express basta para `ICG_Reporteria_Config`.
+- NSSM: https://nssm.cc/download → copiar `nssm.exe` a `C:\nssm\`.
+- Acceso a internet desde el servidor (GitHub y npm) para instalar y actualizar.
 
-## 2. Preparar la app
+## 2. Primera instalación
 ```powershell
-cd C:\apps\ICG_Reporteria\backend
-npm install --omit=dev
-Copy-Item .env.example .env   # y editar valores reales
-```
+# 1) Código
+git clone https://github.com/Roalcoma/Reporteria-ICG.git C:\apps\ICG_Reporteria
 
-## 3. Crear el login SQL de SOLO LECTURA (defensa en profundidad)
-Ejecutar en SQL Server (una vez por instancia de datos ICG):
+# 2) Base de configuración (crea la BD y aplica todos los scripts)
+cd C:\apps\ICG_Reporteria\db
+.\instalar.ps1 -Servidor MISERVIDOR -Usuario sa -Clave "..."
+
+# 3) Variables de entorno
+cd ..\backend
+Copy-Item .env.example .env   # completar: DB_*, SESSION_SECRET, APP_CRYPTO_KEY, GITHUB_REPO
+
+# 4) Dependencias, build y servicios (PowerShell como administrador)
+cd ..\install
+.\instalar-servicios.ps1
+```
+Abrir `http://SERVIDOR:3010`. Si se accede desde otras PCs, permitir el puerto en
+el Firewall de Windows. Logs en `C:\apps\ICG_Reporteria\logs\`.
+
+## 3. Actualizaciones
+Desde la app: **Actualización → Descargar e instalar** (rol Administrador).
+
+1. Descarga la última release de `GITHUB_REPO`.
+2. Instala dependencias y compila en una carpeta temporal (la instalación en uso no se toca).
+3. Backup en `..\ICG_Reporteria_backups\` (se conservan los 3 últimos) y copia de archivos.
+   Si la copia falla, se restaura el backup.
+4. API y worker se reinician solos (NSSM) y la API aplica las migraciones SQL pendientes
+   de `db/` al arrancar (registro en `rep.Migracion`; estado en `/api/health`).
+
+Publicar una versión: subir `version` en `backend/package.json` y `frontend-vue/package.json`,
+crear el tag `vX.Y.Z` y la release en GitHub. Un script SQL nuevo va en `db/` con el
+número siguiente (`14_...sql`) y debe ser idempotente.
+
+## 4. Login SQL de solo lectura (recomendado)
 ```sql
 CREATE LOGIN readonly_rep WITH PASSWORD = 'una-clave-fuerte';
--- En CADA base de datos que la reporteria vaya a leer (GENERAL y las de empresas):
+-- En GENERAL y en cada base de empresa ICG:
 --   CREATE USER readonly_rep FOR LOGIN readonly_rep;
 --   ALTER ROLE db_datareader ADD MEMBER readonly_rep;
 ```
+Se registra por servidor en `rep.ServidorCredencial`.
 
-## 4. Registrar los servicios con NSSM
-```powershell
-# API
-C:\nssm\nssm.exe install ICG_Reporteria_API "C:\Program Files\nodejs\node.exe" "C:\apps\ICG_Reporteria\backend\src\server.js"
-C:\nssm\nssm.exe set ICG_Reporteria_API AppDirectory "C:\apps\ICG_Reporteria\backend"
-C:\nssm\nssm.exe set ICG_Reporteria_API Start SERVICE_AUTO_START
-
-# Worker (scheduler). Se puede registrar mas de uno (WORKER_ID distinto) para escalar.
-C:\nssm\nssm.exe install ICG_Reporteria_Worker "C:\Program Files\nodejs\node.exe" "C:\apps\ICG_Reporteria\backend\src\worker.js"
-C:\nssm\nssm.exe set ICG_Reporteria_Worker AppDirectory "C:\apps\ICG_Reporteria\backend"
-
-Start-Service ICG_Reporteria_API, ICG_Reporteria_Worker
-```
-
-## 5. Proxy inverso / HTTPS (elige uno)
-- **IIS + ARR + URL Rewrite** (ya viene con Windows Server): reverse proxy a
-  `http://localhost:3010`, con certificado en IIS.
-- **nginx** (gratuito) si prefieres no usar IIS.
-
-## Notas
-- El worker NO necesita SQL Agent (no existe en Express): la cola vive en
-  `rep.JobCola` y se drena por polling con `UPDLOCK, READPAST`.
-- Para varios workers concurrentes: registra `ICG_Reporteria_Worker2` con
-  `WORKER_ID=worker-2` en su `.env` o variable de entorno del servicio.
+## 5. HTTPS (opcional)
+IIS + ARR + URL Rewrite (o nginx) como proxy inverso hacia `http://localhost:3010`.

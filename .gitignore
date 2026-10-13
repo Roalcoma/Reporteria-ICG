@@ -42,3 +42,6 @@ backend/tmp/
 # --- Paquetes de release y scripts locales de diagnóstico ------------------
 *.zip
 backend/test-conn.js
+
+# --- Caché de Chromium para el PDF (puppeteer, ver install/instalar-servicios.ps1)
+backend/.cache/

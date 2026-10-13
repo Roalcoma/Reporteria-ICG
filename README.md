@@ -57,35 +57,32 @@ cd ../frontend-vue && npm install
 
 ### 3. Configurar variables de entorno
 
-Crear `backend/.env`:
-
-```env
-DB_SERVER=tu-servidor
-DB_DATABASE=reporteria
-DB_USER=usuario
-DB_PASSWORD=contraseña
-SESSION_SECRET=clave-secreta-larga
-PORT=3010
-```
+Copiar `backend/.env.example` a `backend/.env` y completar `DB_SERVER`, `DB_USER`, `DB_PASSWORD`, `SESSION_SECRET`, `APP_CRYPTO_KEY` y `GITHUB_REPO`.
 
 ### 4. Inicializar la base de datos
 
-Ejecutar los scripts en la carpeta `db/` en orden numérico sobre una BD SQL Server vacía llamada `reporteria`.
-
-### 5. Levantar el sistema
-
-```bash
-# Backend (producción)
-cd backend && npm start
-
-# Frontend — desarrollo
-cd frontend-vue && npm run dev
-
-# Frontend — build de producción
-cd frontend-vue && npm run build
+```powershell
+cd db
+.\instalar.ps1 -Servidor MISERVIDOR -Usuario sa -Clave "..."
 ```
 
-El frontend de desarrollo queda en `http://localhost:5173` y el backend en `http://localhost:3010`.
+Crea `ICG_Reporteria_Config` y aplica todos los scripts. Después, los scripts nuevos de `db/` los aplica el backend solo al arrancar (`rep.Migracion`).
+
+### 5. Producción (servicios de Windows)
+
+```powershell
+cd install
+.\instalar-servicios.ps1     # npm ci, build del frontend y servicios NSSM
+```
+
+La aplicación completa queda en `http://SERVIDOR:3010`: el backend sirve también la interfaz. Detalle en [`install/windows-service.md`](install/windows-service.md).
+
+### 6. Desarrollo
+
+```bash
+cd backend && npm run dev          # API en :3010
+cd frontend-vue && npm run dev     # Vite en :5173 con proxy a /api
+```
 
 ---
 
@@ -159,7 +156,7 @@ Reporteria-ICG/
 
 ## Versión actual
 
-`0.7.3` — Correcciones de fechas, scheduler, correo y Procedimientos. La versión se declara en `backend/package.json` (la usa el actualizador) y `frontend-vue/package.json`; el tag del release debe ser `v<versión>`.
+`0.8.0` — Un solo puerto en producción, migraciones automáticas y actualizador con backup y reinicio. La versión se declara en `backend/package.json` (la usa el actualizador) y `frontend-vue/package.json`; el tag del release debe ser `v<versión>`.
 
 Historial completo en [`frontend-vue/src/changelog.js`](frontend-vue/src/changelog.js).
 
