@@ -102,7 +102,9 @@ Los parámetros pueden ser texto libre, fecha, lista fija o lista dinámica gene
 
 ### Procedimientos
 
-Explora y edita Stored Procedures y Vistas de la base de datos de la empresa activa directamente desde el navegador. El editor usa CodeMirror 6 con syntax highlighting SQL completo. Las modificaciones se aplican vía `ALTER PROCEDURE` / `ALTER VIEW`. Requiere permiso `PuedeCrear`.
+Explora y edita Stored Procedures y Vistas de la base de datos de la empresa activa directamente desde el navegador. El editor usa CodeMirror 6 con syntax highlighting SQL completo. Al guardar, la definición se aplica como `ALTER PROCEDURE` / `ALTER VIEW` / `ALTER FUNCTION` (un `CREATE` cargado se convierte solo). **Solo administradores.**
+
+Un reporte puede basarse en cualquier SP de usuario sin registrarlo antes: `EXEC esquema.nombre @p = {PARAM}`. Se bloquean los procedimientos del sistema (`sp_`, `xp_`), encadenar sentencias y el SQL dinámico. Lo que el SP haga por dentro depende de los permisos del login SQL de datos.
 
 ### Auditoría
 
@@ -125,9 +127,9 @@ Los permisos viven en `rep.AppRol`. Roles de fábrica: **Lectura**, **Creador/Ed
 | Permiso | Habilita |
 |---------|----------|
 | `PuedeEjecutar` | Ejecutar, exportar y enviar por correo reportes existentes |
-| `PuedeCrear` / `PuedeEditar` | Crear y editar reportes, carpetas y guardar la vista de un reporte. `PuedeCrear` además autoriza SP y aplica `ALTER` en Procedimientos |
-| `PuedeProgramar` | Programaciones, Auditoría y acceso al módulo Procedimientos |
-| `PuedeAdministrar` | Branding, Usuarios, Perfiles, Portabilidad y Actualización |
+| `PuedeCrear` / `PuedeEditar` | Crear y editar reportes (incluidos los basados en SP), carpetas y guardar la vista de un reporte |
+| `PuedeProgramar` | Programaciones y Auditoría |
+| `PuedeAdministrar` | Procedimientos, Branding, Usuarios, Perfiles, Portabilidad y Actualización |
 
 ---
 

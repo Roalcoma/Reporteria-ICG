@@ -1,7 +1,18 @@
 /** Registro de cambios. La versión vive en backend/package.json y frontend-vue/package.json (mantener iguales). */
-export const APP_VERSION = '0.8.0';
+export const APP_VERSION = '0.8.1';
 
 export const VERSIONES = [
+  {
+    version: '0.8.1',
+    fecha: '2026-10-13',
+    cambios: [
+      'Reportes: EXEC de cualquier SP de usuario sin autorizarlo antes (se elimina la lista blanca); siguen bloqueados sp_/xp_, sentencias encadenadas y SQL dinámico',
+      'Procedimientos: módulo solo para administradores (menú, ruta y API); antes leer código fuente solo exigía sesión',
+      'Procedimientos: se quita el botón "Autorizar para reportes" y los endpoints de la lista blanca',
+      'Fix: guardar una definición cargada fallaba ("✕ Error") porque SQL Server la devuelve como CREATE; ahora se convierte a ALTER',
+      'Fix: server.js y worker.js cargaban el .env del directorio actual antes que backend/.env',
+    ],
+  },
   {
     version: '0.8.0',
     fecha: '2026-10-13',
@@ -111,6 +122,7 @@ export const VERSIONES = [
 ];
 
 export const COMMITS = [
+  { version: '0.8.1', mensaje: 'feat: SP libres en reportes y Procedimientos solo para administradores' },
   { version: '0.8.0', mensaje: 'feat: fase 1 — backend sirve el frontend, migraciones automáticas y actualizador robusto' },
   { version: '0.7.3', mensaje: 'fix: fase 0 de estabilización — fechas/scheduler UTC, correo, Procedimientos, versión unificada' },
   { version: '0.7.2', mensaje: 'feat: persistir vista de DataGrid (orden/agrupado/formatos) en BD' },
