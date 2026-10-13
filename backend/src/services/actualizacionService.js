@@ -51,9 +51,9 @@ function httpGet(url, redirects = 0) {
 }
 
 /** Ejecuta un comando y rechaza con su salida si falla. robocopy usa códigos < 8 como éxito. */
-function run(cmd, args, cwd, { okCodes = [0], timeout = 15 * 60_000 } = {}) {
+function run(cmd, args, cwd, { okCodes = [0], timeout = 15 * 60_000, env = process.env } = {}) {
   return new Promise((resolve, reject) => {
-    execFile(cmd, args, { cwd, timeout, shell: true, maxBuffer: 64 * 1024 * 1024, windowsHide: true },
+    execFile(cmd, args, { cwd, timeout, env, shell: true, maxBuffer: 64 * 1024 * 1024, windowsHide: true },
       (err, stdout, stderr) => {
         const code = err ? (typeof err.code === 'number' ? err.code : -1) : 0;
         if (okCodes.includes(code)) return resolve(stdout);
@@ -116,7 +116,9 @@ async function ejecutar(info) {
     if (!fs.existsSync(path.join(src, 'backend/package.json'))) throw new Error('El paquete descargado no tiene la estructura esperada');
 
     paso('Instalando dependencias del backend');
-    await run(npm(), ['ci', '--omit=dev', '--no-audit', '--no-fund'], path.join(src, 'backend'));
+    // Chromium del PDF directo al caché de la instalación: si la versión ya está, no se vuelve a bajar.
+    await run(npm(), ['ci', '--omit=dev', '--no-audit', '--no-fund'], path.join(src, 'backend'),
+      { env: { ...process.env, PUPPETEER_CACHE_DIR: path.join(ROOT, 'backend/.cache/puppeteer') } });
     paso('Instalando dependencias del frontend');
     await run(npm(), ['ci', '--no-audit', '--no-fund'], path.join(src, 'frontend-vue'));
     paso('Compilando el frontend');
@@ -128,7 +130,7 @@ async function ejecutar(info) {
 
     paso('Copiando archivos nuevos');
     copiando = true;
-    await robocopy(src, ROOT, ['/XD', 'node_modules', '.git', 'dist']);
+    await robocopy(src, ROOT, ['/XD', 'node_modules', '.git', 'dist', '.cache']);
     await robocopy(path.join(src, 'frontend-vue/dist'), path.join(ROOT, 'frontend-vue/dist'), ['/PURGE']);
     await robocopy(path.join(src, 'backend/node_modules'), path.join(ROOT, 'backend/node_modules'));
     copiando = false;

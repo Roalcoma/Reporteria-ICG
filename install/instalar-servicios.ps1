@@ -36,6 +36,8 @@ function Invoke-Npm([string]$dir, [string[]]$npmArgs) {
 
 Write-Host '-> Dependencias del backend' -ForegroundColor Cyan
 Invoke-Npm $backend @('ci', '--omit=dev', '--no-audit', '--no-fund')
+Write-Host "-> Chromium para el PDF en $cache" -ForegroundColor Cyan
+Invoke-Npm $backend @('exec', '--', 'puppeteer', 'browsers', 'install', 'chrome')
 Write-Host '-> Dependencias y build del frontend' -ForegroundColor Cyan
 Invoke-Npm $frontend @('ci', '--no-audit', '--no-fund')
 Invoke-Npm $frontend @('run', 'build')

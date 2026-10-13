@@ -44,6 +44,15 @@ Publicar una versión: subir `version` en `backend/package.json` y `frontend-vue
 crear el tag `vX.Y.Z` y la release en GitHub. Un script SQL nuevo va en `db/` con el
 número siguiente (`14_...sql`) y debe ser idempotente.
 
+## PDF: "No se encontró Chromium"
+El PDF usa Chromium, que se guarda en `backend\.cache\puppeteer` (no en el perfil del
+usuario: el servicio corre como LocalSystem y no lo vería). Si falta:
+```powershell
+cd C:\apps\ICG_Reporteria\backend
+npx puppeteer browsers install chrome
+Restart-Service ICG_Reporteria_API, ICG_Reporteria_Worker
+```
+
 ## 4. Login SQL de solo lectura (recomendado)
 ```sql
 CREATE LOGIN readonly_rep WITH PASSWORD = 'una-clave-fuerte';

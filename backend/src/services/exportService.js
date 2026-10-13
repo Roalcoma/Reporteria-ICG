@@ -18,8 +18,13 @@
  * envía como descarga (rutas) o como adjunto (worker), sin dejar archivos
  * temporales que después habría que limpiar.
  */
+const path = require('path');
 const ExcelJS = require('exceljs');
 const PdfPrinter = require('pdfmake');
+
+// Mismo directorio que backend/.puppeteerrc.cjs, sin depender del cwd: como
+// servicio (LocalSystem) el Chromium del perfil de quien instaló no existe.
+process.env.PUPPETEER_CACHE_DIR ||= path.resolve(__dirname, '../../.cache/puppeteer');
 
 /**
  * Fuentes estándar del formato PDF: no hay que empaquetar ningún .ttf y
@@ -146,10 +151,19 @@ class ExportService {
    */
   async _pdf_desde_html(htmlContent, orientacion = 'VERTICAL', pSize = 'A4') {
     const puppeteer = require('puppeteer');
-    const browser = await puppeteer.launch({
-      headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    let browser;
+    try {
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+    } catch (e) {
+      if (/Could not find Chrome/i.test(e.message)) {
+        throw new Error(`No se encontró Chromium para generar el PDF (se busca en ${process.env.PUPPETEER_CACHE_DIR}). ` +
+          'En el servidor, dentro de la carpeta backend, ejecute: npx puppeteer browsers install chrome');
+      }
+      throw e;
+    }
     try {
       const page = await browser.newPage();
       await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
