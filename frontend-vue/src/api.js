@@ -13,6 +13,9 @@ async function req(url, options = {}) {
 
 const post = (url, body) => req(url, { method: 'POST', body: JSON.stringify(body) });
 
+/** Mensaje del servidor ({ error }) para descargas que fallan; si no hay JSON, el genérico. */
+const errorDe = (res, generico) => res.json().then(j => j.error || generico).catch(() => generico);
+
 export const api = {
   login: (password) => post('/api/login', { password }),
   logout: () => post('/api/logout', {}),
@@ -104,7 +107,7 @@ export const api = {
 
   async exportarDefinicion(id) {
     const res = await fetch(`/api/reportes/${id}/definicion`, { credentials: 'include' });
-    if (!res.ok) throw new Error('Falló la exportación de la definición');
+    if (!res.ok) throw new Error(await errorDe(res, 'Falló la exportación de la definición'));
     const blob = await res.blob();
     const cd = res.headers.get('Content-Disposition') || '';
     const m = cd.match(/filename="(.+?)"/);
@@ -145,7 +148,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error('Falló la exportación');
+    if (!res.ok) throw new Error(await errorDe(res, 'Falló la exportación'));
     const blob = await res.blob();
     const cd = res.headers.get('Content-Disposition') || '';
     const m = cd.match(/filename="(.+?)"/);
