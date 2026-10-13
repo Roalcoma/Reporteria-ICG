@@ -1,7 +1,20 @@
 /** Registro de cambios. La versión vive en backend/package.json y frontend-vue/package.json (mantener iguales). */
-export const APP_VERSION = '0.7.3';
+export const APP_VERSION = '0.8.0';
 
 export const VERSIONES = [
+  {
+    version: '0.8.0',
+    fecha: '2026-10-13',
+    cambios: [
+      'Despliegue: el backend sirve el frontend compilado — producción en un solo puerto (3010), sin Vite',
+      'Migraciones: los scripts de db/ pendientes se aplican al arrancar (registro en rep.Migracion; estado en /api/health)',
+      'Actualizador reescrito: la URL la decide el servidor; npm ci + build en carpeta temporal, backup, copia con restauración si falla y reinicio automático bajo NSSM',
+      'Actualizador: progreso por pasos en pantalla y recarga automática al volver el servidor con la versión nueva',
+      'Worker: se reinicia solo entre jobs cuando detecta una versión nueva (bajo NSSM)',
+      'Instalación: install/instalar-servicios.ps1 registra API y worker en NSSM con logs rotados y caché de Chromium propio (PDF bajo LocalSystem)',
+      'Fix: db/instalar.ps1 no ejecutaba los scripts 11, 12 y 13 en instalaciones nuevas',
+    ],
+  },
   {
     version: '0.7.3',
     fecha: '2026-10-13',
@@ -98,6 +111,7 @@ export const VERSIONES = [
 ];
 
 export const COMMITS = [
+  { version: '0.8.0', mensaje: 'feat: fase 1 — backend sirve el frontend, migraciones automáticas y actualizador robusto' },
   { version: '0.7.3', mensaje: 'fix: fase 0 de estabilización — fechas/scheduler UTC, correo, Procedimientos, versión unificada' },
   { version: '0.7.2', mensaje: 'feat: persistir vista de DataGrid (orden/agrupado/formatos) en BD' },
   { version: '0.7.0', mensaje: 'feat: editor SQL CodeMirror 6 + módulo Procedimientos (SPs y Vistas)' },

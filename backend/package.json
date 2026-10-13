@@ -1,13 +1,13 @@
 {
   "name": "icg-reporteria-backend",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "description": "Motor backend de la Herramienta de Reporteria Dinamica ICG",
   "main": "src/server.js",
   "scripts": {
     "start": "node --max-old-space-size=512 src/server.js",
     "worker": "node --max-old-space-size=512 src/worker.js",
     "dev": "node --max-old-space-size=512 --watch src/server.js",
-    "test": "node test/icgPassword.test.js && node test/sqlGuard.test.js && node test/engine.test.js && node test/export.test.js && node test/usuarios.test.js && node test/portabilidad.test.js && node test/formato.test.js && node test/filtros.test.js && node test/relaciones.test.js && node test/panel.test.js && node test/periodos.test.js"
+    "test": "node test/icgPassword.test.js && node test/sqlGuard.test.js && node test/engine.test.js && node test/export.test.js && node test/usuarios.test.js && node test/portabilidad.test.js && node test/formato.test.js && node test/filtros.test.js && node test/relaciones.test.js && node test/panel.test.js && node test/periodos.test.js && node test/actualizacion.test.js"
   },
   "dependencies": {
     "connect-mssql-v2": "^6.0.0",
