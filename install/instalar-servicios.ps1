@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 #  Instala ICG Reportería como servicios de Windows (NSSM).
 #
 #  - Instala dependencias y compila el frontend.
