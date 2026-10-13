@@ -3,92 +3,12 @@ const sql = require('mssql');
 const cm = require('../db/connectionManager');
 
 /**
- * Lista blanca de procedimientos almacenados que los reportes pueden ejecutar.
- *
- * Un reporte SÍ puede basarse en un SP, pero solo en los registrados aquí por un
- * administrador. No existe EXEC libre: el creador de reportes no puede invocar
- * cualquier procedimiento.
- *
- * ADVERTENCIA: un SP puede hacer internamente lo que quiera. La lista blanca
- * evita que se llame cualquier cosa, pero la garantía real de que no escriba
- * proviene del login SQL de solo lectura (y de que el SP no use EXECUTE AS).
- * Registre únicamente procedimientos de lectura revisados.
+ * Módulo Procedimientos (solo administradores): explorar SPs y vistas de la BD
+ * de la empresa, leer su definición y aplicar ALTER. Los reportes pueden hacer
+ * EXEC de cualquier SP de usuario sin registrarlo antes (ver sqlGuard).
  */
-const CACHE_MS = 60 * 1000;
-
 class ProcedimientoService {
-  constructor() { this._cache = null; this._cacheAt = 0; }
-
-  /** @returns {Promise<Set<string>>} claves 'esquema.nombre' en minúsculas. */
-  async getPermitidos() {
-    if (this._cache && Date.now() - this._cacheAt < CACHE_MS) return this._cache;
-    const pool = await cm.getConfigPool();
-    const { recordset } = await pool.request().query(
-      `SELECT Esquema, Nombre FROM rep.ProcedimientoPermitido WHERE Activo = 1`);
-    this._cache = new Set(recordset.map(r =>
-      `${(r.Esquema || 'dbo').toLowerCase()}.${r.Nombre.toLowerCase()}`));
-    this._cacheAt = Date.now();
-    return this._cache;
-  }
-
-  invalidarCache() { this._cache = null; }
-
-  async listar() {
-    const pool = await cm.getConfigPool();
-    const { recordset } = await pool.request().query(
-      `SELECT ProcedimientoId, Esquema, Nombre, Descripcion, BaseDatos, Activo,
-              LoginAutorizador, FechaAutorizacion
-       FROM rep.ProcedimientoPermitido
-       ORDER BY Esquema, Nombre`);
-    return recordset;
-  }
-
-  /** Registra un SP autorizado. El nombre se valida como identificador simple. */
-  async autorizar({ esquema = 'dbo', nombre, descripcion, baseDatos }, usuario) {
-    const ident = /^[A-Za-z_][A-Za-z0-9_]*$/;
-    if (!ident.test(nombre) || !ident.test(esquema)) {
-      const e = new Error('Nombre de procedimiento inválido'); e.status = 400; throw e;
-    }
-    if (/^(sp_|xp_)/i.test(nombre)) {
-      const e = new Error('No se pueden autorizar procedimientos del sistema');
-      e.status = 400; throw e;
-    }
-    const pool = await cm.getConfigPool();
-    const { recordset } = await pool.request()
-      .input('esq', sql.NVarChar(128), esquema)
-      .input('nom', sql.NVarChar(128), nombre)
-      .input('desc', sql.NVarChar(400), descripcion ?? null)
-      .input('bd', sql.NVarChar(128), baseDatos ?? null)
-      .input('uid', sql.Int, usuario?.appRol?.UsuarioAppId ?? null)
-      .input('login', sql.NVarChar(60), usuario?.usuario ?? null)
-      .query(`INSERT INTO rep.ProcedimientoPermitido
-              (Esquema, Nombre, Descripcion, BaseDatos, AutorizadoPor, LoginAutorizador)
-              OUTPUT inserted.ProcedimientoId
-              VALUES (@esq, @nom, @desc, @bd, @uid, @login)`);
-    this.invalidarCache();
-    return recordset[0].ProcedimientoId;
-  }
-
-  async cambiarActivo(procedimientoId, activo) {
-    const pool = await cm.getConfigPool();
-    await pool.request()
-      .input('id', sql.Int, procedimientoId)
-      .input('a', sql.Bit, !!activo)
-      .query(`UPDATE rep.ProcedimientoPermitido SET Activo = @a WHERE ProcedimientoId = @id`);
-    this.invalidarCache();
-  }
-
-  async eliminar(procedimientoId) {
-    const pool = await cm.getConfigPool();
-    await pool.request().input('id', sql.Int, procedimientoId)
-      .query(`DELETE FROM rep.ProcedimientoPermitido WHERE ProcedimientoId = @id`);
-    this.invalidarCache();
-  }
-
-  /**
-   * Ayuda al administrador: lista los SP existentes en una BD de datos para
-   * elegir cuáles autorizar (solo nombres, no ejecuta nada).
-   */
+  /** Lista los SP de una BD de datos (solo nombres, no ejecuta nada). */
   async descubrirEnBaseDatos(destino, filtro) {
     const pool = await cm.getDataPool(destino);
     const req = pool.request();
@@ -135,16 +55,34 @@ class ProcedimientoService {
   }
 
   async alterarDefinicion(destino, definicion) {
-    const def = (definicion || '').trimStart();
-    const prefix = def.slice(0, 25).toUpperCase().replace(/\s+/g, ' ');
-    const allowed = ['ALTER PROCEDURE', 'ALTER PROC ', 'ALTER VIEW', 'ALTER FUNCTION'];
-    if (!allowed.some(p => prefix.startsWith(p))) {
-      const e = new Error('La definición debe comenzar con ALTER PROCEDURE, ALTER VIEW o ALTER FUNCTION');
-      e.status = 400; throw e;
-    }
     const pool = await cm.getDataPool(destino);
-    await pool.request().batch(def);
+    await pool.request().batch(comoAlter(definicion));
   }
 }
 
+const CABECERA = /^(CREATE(?:\s+OR\s+ALTER)?|ALTER)\s+(PROC(?:EDURE)?|VIEW|FUNCTION)\b/i;
+
+/**
+ * SQL Server guarda la definición como `CREATE ...` (a veces con comentarios
+ * antes): se convierte a ALTER para poder guardar lo que el editor cargó.
+ * Cualquier otra sentencia se rechaza.
+ */
+function comoAlter(definicion) {
+  const t = definicion || '';
+  let i = 0;
+  for (;;) {
+    while (i < t.length && /\s/.test(t[i])) i++;
+    if (t.startsWith('--', i)) { const j = t.indexOf('\n', i); i = j < 0 ? t.length : j + 1; continue; }
+    if (t.startsWith('/*', i)) { const j = t.indexOf('*/', i + 2); i = j < 0 ? t.length : j + 2; continue; }
+    break;
+  }
+  const m = CABECERA.exec(t.slice(i));
+  if (!m) {
+    const e = new Error('La definición debe ser un CREATE o ALTER de PROCEDURE, VIEW o FUNCTION');
+    e.status = 400; throw e;
+  }
+  return t.slice(0, i) + `ALTER ${m[2].toUpperCase()}` + t.slice(i + m[0].length);
+}
+
 module.exports = new ProcedimientoService();
+module.exports.comoAlter = comoAlter;

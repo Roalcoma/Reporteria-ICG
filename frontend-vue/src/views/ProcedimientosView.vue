@@ -122,23 +122,6 @@
               <span v-if="guardadoOk" class="proc-status proc-status--ok">✓ Guardado</span>
               <span v-if="errorGuardar" class="proc-status proc-status--err" :title="errorGuardar">✕ Error</span>
 
-              <!-- Autorización para reportes (solo SPs) -->
-              <template v-if="tab === 'sps'">
-                <span v-if="esAutorizado" class="proc-auth-badge proc-auth-badge--ok">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 8 6.5 12 13 4"/></svg>
-                  Autorizado
-                </span>
-                <button
-                  v-else
-                  class="btn btn-sm proc-auth-btn"
-                  :disabled="autorizando"
-                  @click="autorizar"
-                >
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 1v6M5 4l3-3 3 3"/><rect x="2" y="8" width="12" height="7" rx="1.5"/></svg>
-                  {{ autorizando ? 'Autorizando…' : 'Autorizar para reportes' }}
-                </button>
-              </template>
-
               <button
                 class="btn btn-primary btn-sm"
                 :disabled="guardando || cargandoDef"
@@ -198,21 +181,13 @@ const errorDef      = ref('');
 const errorGuardar  = ref('');
 const sinEmpresa    = ref(false);
 const esquemaFiltro = ref('');
-const autorizados   = ref(new Set());
-const autorizando   = ref(false);
-
-const esAutorizado = computed(() => {
-  if (!seleccionado.value) return false;
-  const key = `${seleccionado.value.Esquema.toLowerCase()}.${seleccionado.value.Nombre.toLowerCase()}`;
-  return autorizados.value.has(key);
-});
 
 const esquemas = computed(() => [...new Set(lista.value.map(i => i.Esquema))].sort());
 const listaFiltrada = computed(() =>
   esquemaFiltro.value ? lista.value.filter(i => i.Esquema === esquemaFiltro.value) : lista.value
 );
 
-onMounted(() => { cargarLista(); cargarAutorizados(); });
+onMounted(cargarLista);
 
 function formatFecha(iso) {
   if (!iso) return '';
@@ -271,28 +246,6 @@ async function seleccionar(item) {
   }
 }
 
-async function cargarAutorizados() {
-  try {
-    const lista = await api.procedimientos();
-    autorizados.value = new Set(
-      lista.filter(p => p.Activo).map(p => `${(p.Esquema||'dbo').toLowerCase()}.${p.Nombre.toLowerCase()}`)
-    );
-  } catch { /* silencioso */ }
-}
-
-async function autorizar() {
-  if (!seleccionado.value) return;
-  autorizando.value = true;
-  try {
-    await api.autorizarSp({ esquema: seleccionado.value.Esquema, nombre: seleccionado.value.Nombre });
-    await cargarAutorizados();
-    toast.ok(`SP ${seleccionado.value.Nombre} autorizado para reportes`);
-  } catch (e) {
-    toast.error(e.message || 'Error al autorizar');
-  } finally {
-    autorizando.value = false;
-  }
-}
 
 async function guardar() {
   guardando.value = true;
@@ -626,34 +579,4 @@ async function guardar() {
 .proc-status--err    { color: var(--error); cursor: help; }
 
 .proc-editor-cm { flex: 1; overflow: hidden; }
-
-/* Autorización */
-.proc-auth-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--t-xs);
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 99px;
-  border: 1.5px solid;
-}
-.proc-auth-badge--ok {
-  color: var(--primary);
-  border-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 10%, transparent);
-}
-.proc-auth-badge svg { width: 12px; height: 12px; }
-
-.proc-auth-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: 1.5px solid var(--borde-fuerte);
-  background: transparent;
-  color: var(--texto-suave);
-  font-size: var(--t-xs);
-}
-.proc-auth-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
-.proc-auth-btn svg { width: 12px; height: 12px; }
 </style>

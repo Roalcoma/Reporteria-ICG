@@ -85,13 +85,6 @@ export const api = {
     req(`/api/branding/empresa/logo?codigoICG=${codigoICG}&tipo=${tipo}${ejercicio != null ? `&ejercicio=${ejercicio}` : ''}`, { method: 'DELETE' }),
   guardarBranding: (b) => req('/api/branding/empresa', { method: 'PUT', body: JSON.stringify(b) }),
 
-  procedimientos: () => req('/api/procedimientos'),
-  descubrirSp: (filtro) =>
-    req(`/api/procedimientos/descubrir${filtro ? `?filtro=${encodeURIComponent(filtro)}` : ''}`),
-  autorizarSp: (p) => post('/api/procedimientos', p),
-  activarSp: (id, activo) =>
-    req(`/api/procedimientos/${id}/activo`, { method: 'PUT', body: JSON.stringify({ Activo: activo }) }),
-  revocarSp: (id) => req(`/api/procedimientos/${id}`, { method: 'DELETE' }),
 
   auditoriaEventos: (q = {}) =>
     req('/api/auditoria/eventos?' + new URLSearchParams(
