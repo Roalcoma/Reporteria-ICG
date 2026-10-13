@@ -63,7 +63,7 @@
     </div>
 
     <!-- Card: aplicar actualización (solo si hay nueva versión y es admin) -->
-    <div v-if="hayActualizacion && esAdmin" class="act-card act-card--aplicar">
+    <div v-if="(hayActualizacion || progreso) && esAdmin" class="act-card act-card--aplicar">
       <div class="act-card-header">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
@@ -71,24 +71,24 @@
         <span class="act-card-title">Aplicar actualización</span>
       </div>
 
-      <div class="act-info-archivo">
-        Se descargará <strong>{{ info.nombreArchivo }}</strong> y se extraerá sobreescribiendo los archivos del servidor. El servicio deberá reiniciarse manualmente después.
+      <div v-if="info" class="act-info-archivo">
+        Se descargará <strong>{{ info.nombreArchivo }}</strong>, se instalarán dependencias y se compilará en una carpeta aparte;
+        recién al final se hace backup y se reemplazan los archivos. Los cambios de base de datos se aplican al reiniciar.
+        <template v-if="info.reinicioAutomatico"> El servicio se reinicia solo.</template>
+        <template v-else> Después hay que reiniciar el backend y el worker.</template>
       </div>
 
-      <div class="act-aviso">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-          <path d="M12 9v4M12 17h.01"/>
-        </svg>
-        Asegurate de hacer un backup antes de actualizar.
-      </div>
+      <!-- Progreso -->
+      <ol v-if="progreso?.pasos?.length" class="act-pasos">
+        <li v-for="(p, i) in progreso.pasos" :key="i">{{ p.texto }}</li>
+      </ol>
 
       <!-- Éxito -->
       <div v-if="estado === 'exito'" class="act-exito">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M20 6L9 17l-5-5"/>
         </svg>
-        Archivos actualizados correctamente. Reiniciá el servidor para aplicar los cambios.
+        {{ progreso?.estado === 'reiniciando' ? 'Actualización instalada. Esperando que el servidor reinicie…' : 'Actualización instalada. Reiniciá el backend y el worker para aplicarla.' }}
       </div>
 
       <!-- Error al aplicar -->
@@ -110,14 +110,14 @@
         <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
         </svg>
-        {{ estado === 'aplicando' ? 'Descargando e instalando…' : 'Descargar e instalar' }}
+        {{ estado === 'aplicando' ? 'Instalando… (puede tardar unos minutos)' : 'Descargar e instalar' }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { api } from '@/api.js';
 import { useToast } from '@/composables/useToast.js';
 import { useSessionStore } from '@/stores/session.js';
@@ -132,11 +132,10 @@ const estado   = ref('cargando');
 const info     = ref(null);
 const errorMsg = ref('');
 
-const hayActualizacion = computed(() => {
-  if (!info.value) return false;
-  return info.value.tagRemoto !== `v${info.value.versionActual}` &&
-         info.value.tagRemoto !== info.value.versionActual;
-});
+const progreso = ref(null);
+const hayActualizacion = computed(() => !!info.value?.hayActualizacion);
+let timer = null;
+const esperar = (ms) => new Promise(r => { timer = setTimeout(r, ms); });
 
 async function verificar() {
   estado.value  = 'cargando';
@@ -151,13 +150,11 @@ async function verificar() {
 }
 
 async function aplicar() {
-  if (!info.value?.urlDescarga) return;
   estado.value   = 'aplicando';
   errorMsg.value = '';
   try {
-    await api.aplicarActualizacion(info.value.urlDescarga);
-    estado.value = 'exito';
-    toast.ok('Archivos actualizados. Reiniciá el servidor para aplicar los cambios.');
+    progreso.value = await api.aplicarActualizacion();
+    await seguirProgreso();
   } catch (e) {
     estado.value  = 'errorAplicar';
     errorMsg.value = e.message;
@@ -165,7 +162,50 @@ async function aplicar() {
   }
 }
 
-onMounted(verificar);
+async function seguirProgreso() {
+  while (progreso.value?.estado === 'aplicando') {
+    await esperar(2000);
+    progreso.value = await api.estadoActualizacion();
+  }
+  if (progreso.value?.estado === 'error') throw new Error(progreso.value.error);
+  estado.value = 'exito';
+  if (progreso.value?.estado === 'reiniciando') await esperarReinicio();
+}
+
+/** El servidor se cae unos segundos al reiniciar: se espera a que responda con la versión nueva. */
+async function esperarReinicio() {
+  const anterior = info.value?.versionActual;
+  for (let i = 0; i < 90; i++) {
+    await esperar(2000);
+    const h = await api.health().catch(() => null);
+    if (h && h.version !== anterior) {
+      toast.ok(`Actualizado a ${h.version}`);
+      return window.location.reload();
+    }
+  }
+  errorMsg.value = 'El servidor no volvió en 3 minutos. Revisá el servicio en el servidor.';
+  estado.value = 'errorAplicar';
+}
+
+onMounted(async () => {
+  await verificar();
+  // Si se recarga la página a mitad de una actualización, retomar el seguimiento.
+  if (esAdmin.value) {
+    progreso.value = await api.estadoActualizacion().catch(() => null);
+    if (progreso.value?.estado === 'aplicando') {
+      estado.value = 'aplicando';
+      seguirProgreso().catch(e => { estado.value = 'errorAplicar'; errorMsg.value = e.message; });
+    } else if (progreso.value?.estado === 'error') {
+      estado.value = 'errorAplicar';
+      errorMsg.value = progreso.value.error;
+    } else if (progreso.value?.estado === 'listo') {
+      estado.value = 'exito';
+    } else {
+      progreso.value = null;
+    }
+  }
+});
+onBeforeUnmount(() => clearTimeout(timer));
 </script>
 
 <style scoped>
@@ -178,6 +218,23 @@ onMounted(verificar);
 }
 
 .act-header { display: flex; flex-direction: column; gap: 4px; }
+
+.act-pasos {
+  margin: 0;
+  padding: var(--e3) var(--e4) var(--e3) calc(var(--e4) + 14px);
+  background: var(--panel-alt);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--r2);
+  font-family: var(--fuente-mono);
+  font-size: var(--t-sm);
+  color: var(--texto-suave);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.act-pasos li:last-child { color: var(--texto); font-weight: 500; }
 .act-title  { font-size: var(--t-xl); font-weight: 700; color: var(--titulo); margin: 0; }
 .act-sub    { font-size: var(--t-sm); color: var(--texto-tenue); margin: 0; }
 

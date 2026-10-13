@@ -142,7 +142,9 @@ export const api = {
   enviar: (id, payload) => post(`/api/reportes/${id}/enviar`, payload),
 
   checkActualizacion: () => req('/api/actualizacion/check'),
-  aplicarActualizacion: (urlZip) => post('/api/actualizacion/aplicar', { urlZip }),
+  aplicarActualizacion: () => post('/api/actualizacion/aplicar', {}),
+  estadoActualizacion: () => req('/api/actualizacion/estado'),
+  health: () => req('/api/health'),
 
   async exportar(id, payload) {
     const res = await fetch(`/api/reportes/${id}/exportar`, {

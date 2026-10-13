@@ -1,6 +1,7 @@
 'use strict';
 const express = require('express');
-const { checkVersion, descargarYExtraer } = require('../services/actualizacionService');
+const actualizacion = require('../services/actualizacionService');
+const { auditoria } = require('../services/auditoriaService');
 const { requireAuth, asyncH } = require('../middleware/auth');
 
 const router = express.Router();
@@ -15,14 +16,19 @@ function requireAdmin(req, res, next) {
 
 /** Consulta la versión remota en GitHub. Accesible a cualquier usuario autenticado. */
 router.get('/check', requireAuth, asyncH(async (req, res) => {
-  res.json(await checkVersion());
+  res.json(await actualizacion.checkVersion());
 }));
 
-/** Descarga y aplica la actualización. Solo administradores. */
+/** Inicia la actualización en segundo plano (202). El progreso se consulta en /estado. */
 router.post('/aplicar', requireAdmin, asyncH(async (req, res) => {
-  const { urlZip } = req.body;
-  if (!urlZip) return res.status(400).json({ error: 'urlZip es requerido' });
-  res.json(await descargarYExtraer(urlZip));
+  const p = await actualizacion.iniciar();
+  await auditoria.registrar({
+    tipo: 'ACTUALIZACION', entidad: 'SISTEMA', usuario: req.session.user,
+    descripcion: `Inició la actualización a ${p.version}`
+  });
+  res.status(202).json(p);
 }));
+
+router.get('/estado', requireAdmin, (req, res) => res.json(actualizacion.progreso()));
 
 module.exports = router;

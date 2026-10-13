@@ -81,3 +81,20 @@ log('worker iniciado');
 const shutdown = async () => { log('deteniendo…'); await cm.closeAll(); process.exit(0); };
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+
+// Tras una actualización el código en disco cambia: bajo NSSM, salir entre jobs
+// hace que el servicio vuelva a arrancar con la versión nueva.
+if (process.env.ACTUALIZACION_REINICIAR === '1') {
+  const fs = require('fs');
+  const pkg = require('path').join(__dirname, '../package.json');
+  const versionCargada = JSON.parse(fs.readFileSync(pkg, 'utf8')).version;
+  setInterval(() => {
+    try {
+      const enDisco = JSON.parse(fs.readFileSync(pkg, 'utf8')).version;
+      if (enDisco !== versionCargada && !drenando) {
+        log(`versión nueva ${enDisco} (cargada ${versionCargada}): reiniciando`);
+        shutdown();
+      }
+    } catch { /* package.json a medio copiar: reintenta en el próximo tick */ }
+  }, 60_000).unref();
+}
