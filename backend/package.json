@@ -1,6 +1,6 @@
 {
   "name": "icg-reporteria-backend",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Motor backend de la Herramienta de Reporteria Dinamica ICG",
   "main": "src/server.js",
   "scripts": {

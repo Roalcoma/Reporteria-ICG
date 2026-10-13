@@ -1,7 +1,17 @@
 /** Registro de cambios. La versión vive en backend/package.json y frontend-vue/package.json (mantener iguales). */
-export const APP_VERSION = '0.8.1';
+export const APP_VERSION = '0.8.2';
 
 export const VERSIONES = [
+  {
+    version: '0.8.2',
+    fecha: '2026-10-13',
+    cambios: [
+      'Fix: exportar a PDF fallaba como servicio de Windows — Chromium estaba en el perfil de quien instaló y LocalSystem no lo veía; ahora vive en backend/.cache/puppeteer (.puppeteerrc.cjs + ruta fija en exportService)',
+      'Actualizador: descarga Chromium al caché de la instalación (no se vuelve a bajar si la versión ya está)',
+      'instalar-servicios.ps1: instala Chromium explícitamente',
+      'Exportaciones: se muestra el error real del servidor en vez de "Falló la exportación"; si falta Chromium, el mensaje indica cómo instalarlo',
+    ],
+  },
   {
     version: '0.8.1',
     fecha: '2026-10-13',
@@ -122,6 +132,7 @@ export const VERSIONES = [
 ];
 
 export const COMMITS = [
+  { version: '0.8.2', mensaje: 'fix: PDF como servicio — Chromium dentro del proyecto' },
   { version: '0.8.1', mensaje: 'feat: SP libres en reportes y Procedimientos solo para administradores' },
   { version: '0.8.0', mensaje: 'feat: fase 1 — backend sirve el frontend, migraciones automáticas y actualizador robusto' },
   { version: '0.7.3', mensaje: 'fix: fase 0 de estabilización — fechas/scheduler UTC, correo, Procedimientos, versión unificada' },
