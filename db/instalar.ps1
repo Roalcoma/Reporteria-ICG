@@ -23,19 +23,13 @@ param(
 $ErrorActionPreference = 'Stop'
 $carpeta = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# Orden obligatorio: cada script asume el anterior.
-$scripts = @(
-  '01_schema.sql',
-  '02_auditoria.sql',
-  '03_procedimientos.sql',
-  '04_roles.sql',
-  '05_ejecucion_usuario.sql',
-  '06_perfiles.sql',
-  '07_dashboards.sql',
-  '08_catalogo_icg.sql',
-  '09_catalogo_icg_v2.sql',
-  '10_catalogo_propiedad.sql'
-)
+# Orden obligatorio (numérico): cada script asume el anterior. Se toman todos los
+# NN_*.sql para no olvidar los nuevos. Después, el backend aplica solo los que
+# falten al arrancar (rep.Migracion).
+$scripts = Get-ChildItem $carpeta -Filter '*.sql' |
+  Where-Object { $_.Name -match '^\d+_' } |
+  Sort-Object { [int]($_.Name -split '_')[0] } |
+  ForEach-Object { $_.Name }
 
 # Conexión + autenticación. Se arma la lista completa de argumentos: mezclar
 # splatting con parámetros sueltos hace que sqlcmd reciba un argumento vacío.

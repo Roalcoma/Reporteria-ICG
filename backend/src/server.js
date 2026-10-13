@@ -1,5 +1,7 @@
 'use strict';
 require('dotenv').config();
+const fs         = require('fs');
+const path       = require('path');
 const express    = require('express');
 const session    = require('express-session');
 const cors       = require('cors');
@@ -7,6 +9,7 @@ const rateLimit  = require('express-rate-limit');
 const MSSQLStore = require('connect-mssql-v2');
 const cfg        = require('./config');
 const cm         = require('./db/connectionManager');
+const { migrarAlArrancar, estadoMigraciones } = require('./db/migraciones');
 const { authService, AuthError } = require('./services/authService');
 const { requireAuth, asyncH }    = require('./middleware/auth');
 const carpetasRoutes       = require('./routes/carpetas.routes');
@@ -140,7 +143,20 @@ app.use('/api/catalogo',      catalogoAdminRoutes);
 app.use('/api/correo',        correoRoutes);
 app.use('/api/actualizacion', actualizacionRoutes);
 
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/api/health', (req, res) => res.json({
+  ok: true, version: require('../package.json').version, migraciones: estadoMigraciones()
+}));
+app.use('/api', (req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
+
+// Frontend compilado (npm run build en frontend-vue). En producción todo se sirve
+// desde este puerto: Vite solo se usa en desarrollo.
+const DIST = path.resolve(__dirname, '../../frontend-vue/dist');
+if (fs.existsSync(DIST)) {
+  app.use(express.static(DIST, { index: false, maxAge: '7d', immutable: true }));
+  app.get('*', (req, res) => res.sendFile(path.join(DIST, 'index.html'), { maxAge: 0 }));
+} else {
+  console.warn(`[server] No existe ${DIST}: ejecute "npm run build" en frontend-vue para servir la interfaz.`);
+}
 
 app.use((err, req, res, _next) => {
   if (err instanceof AuthError) return res.status(403).json({ error: err.message });
@@ -149,8 +165,10 @@ app.use((err, req, res, _next) => {
   res.status(status).json({ error: err.message || 'Error interno' });
 });
 
-const server = app.listen(cfg.port, () =>
-  console.log(`ICG Reportería API escuchando en :${cfg.port}`));
+const server = app.listen(cfg.port, () => {
+  console.log(`ICG Reportería API escuchando en :${cfg.port}`);
+  migrarAlArrancar();
+});
 
 const shutdown = async () => { await cm.closeAll(); server.close(() => process.exit(0)); };
 process.on('SIGTERM', shutdown);
